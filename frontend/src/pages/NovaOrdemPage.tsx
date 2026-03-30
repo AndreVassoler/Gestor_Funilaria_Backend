@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { MarcaModeloFields } from '../components/MarcaModeloFields'
 import { API_BASE } from '../config/api'
+import { apiFetch } from '../utils/apiFetch'
+import { responseJson, tryResponseJson } from '../utils/apiJson'
 import { hojeInputDate, inputClass } from '../constants/ordemUi'
 import type { PrefillAgendamentoParaOrdem } from '../types/agendamento'
 import * as F from '../utils/ordemForm'
@@ -102,22 +104,25 @@ export function NovaOrdemPage() {
       if (form.previsaoEntrega.trim()) {
         body.previsaoEntrega = form.previsaoEntrega
       }
-      const res = await fetch(`${API_BASE}/ordens-servico`, {
+      const res = await apiFetch(`${API_BASE}/ordens-servico`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
       if (!res.ok) {
-        const b = await res.json().catch(() => null)
-        throw new Error(
-          b?.message?.[0] ?? `Não foi possível cadastrar (${res.status})`,
-        )
+        const b = await tryResponseJson<{ message?: string | string[] }>(res)
+        const msg = Array.isArray(b?.message)
+          ? b.message[0]
+          : typeof b?.message === 'string'
+            ? b.message
+            : undefined
+        throw new Error(msg ?? `Não foi possível cadastrar (${res.status})`)
       }
-      const created = (await res.json()) as { id: number }
+      const created = await responseJson<{ id: number }>(res)
       const aid = agendamentoParaVincular.current
       if (aid != null) {
         try {
-          await fetch(`${API_BASE}/agendamentos/${aid}`, {
+          await apiFetch(`${API_BASE}/agendamentos/${aid}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

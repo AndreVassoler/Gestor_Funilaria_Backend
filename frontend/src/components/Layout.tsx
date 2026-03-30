@@ -1,4 +1,5 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { useAuth } from '../auth/AuthContext'
 import { FUNILARIA_NOME } from '../brand'
 
 const navLinkClass =
@@ -14,6 +15,9 @@ function navClass({ isActive }: { isActive: boolean }) {
 }
 
 export function Layout() {
+  const { logout } = useAuth()
+  const navigate = useNavigate()
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <header className="border-b border-slate-200 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
@@ -42,6 +46,16 @@ export function Layout() {
             <NavLink to="/relatorios" className={navClass}>
               Relatórios
             </NavLink>
+            <button
+              type="button"
+              onClick={() => {
+                logout()
+                void navigate('/login', { replace: true })
+              }}
+              className={`${navLinkClass} text-slate-500 hover:bg-slate-100 dark:text-slate-500 dark:hover:bg-slate-800`}
+            >
+              Sair
+            </button>
           </nav>
         </div>
       </header>

@@ -7,6 +7,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import type { Response } from 'express';
+import { Public } from '../auth/public.decorator';
 import { GoogleCalendarService } from './google-calendar.service';
 import { withHttpSchemeIfMissing } from './http-url.util';
 
@@ -27,6 +28,7 @@ export class GoogleCalendarController {
     };
   }
 
+  @Public()
   @Get('authorize')
   authorize(@Res({ passthrough: false }) res: Response) {
     if (!this.gc.isOAuthConfigured()) {
@@ -39,6 +41,7 @@ export class GoogleCalendarController {
     return;
   }
 
+  @Public()
   @Get('callback')
   async callback(
     @Query('code') code: string | undefined,

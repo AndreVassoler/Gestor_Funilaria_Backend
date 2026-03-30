@@ -1,14 +1,17 @@
-import { config as loadEnv } from 'dotenv';
-loadEnv();
+import './bootstrap-env';
 
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Agendamento } from './agendamentos/agendamento.entity';
 import { AgendamentosModule } from './agendamentos/agendamentos.module';
+import { AuthModule } from './auth/auth.module';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { GoogleCalendarToken } from './google-calendar/google-calendar-token.entity';
 import { OrdemServicoFoto } from './ordens-servico/ordem-servico-foto.entity';
 import { OrdemServico } from './ordens-servico/ordem-servico.entity';
 import { OrdensServicoModule } from './ordens-servico/ordens-servico.module';
+import { RootController } from './root.controller';
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
@@ -36,8 +39,16 @@ const useSsl = process.env.DATABASE_SSL !== 'false';
       retryAttempts: 3,
       retryDelay: 3000,
     }),
+    AuthModule,
     OrdensServicoModule,
     AgendamentosModule,
+  ],
+  controllers: [RootController],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
   ],
 })
 export class AppModule {}

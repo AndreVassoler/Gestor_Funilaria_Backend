@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
+import { apiFetch } from '../utils/apiFetch'
+import { responseJson } from '../utils/apiJson'
 import type {
   DashboardResumo,
   OrdemServico,
@@ -27,15 +29,15 @@ export function useOrdensList(apiBase: string, filters: OrdensListFilters) {
       if (filters.status) q.set('status', filters.status)
       const qs = q.toString()
       const url = `${apiBase}/ordens-servico${qs ? `?${qs}` : ''}`
-      const res = await fetch(url)
+      const res = await apiFetch(url)
       if (!res.ok) throw new Error('Falha ao carregar ordens')
-      const data: OrdemServico[] = await res.json()
+      const data = await responseJson<OrdemServico[]>(res)
       setOrdens(data)
-      const r2 = await fetch(
+      const r2 = await apiFetch(
         `${apiBase}/ordens-servico/resumo${qs ? `?${qs}` : ''}`,
       )
       if (!r2.ok) throw new Error('Falha ao carregar resumo do dashboard')
-      setResumo((await r2.json()) as DashboardResumo)
+      setResumo(await responseJson<DashboardResumo>(r2))
     } catch (e) {
       setResumo(null)
       setError(e instanceof Error ? e.message : 'Erro desconhecido')

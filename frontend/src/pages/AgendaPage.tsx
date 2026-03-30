@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { MarcaModeloFields } from '../components/MarcaModeloFields'
 import { API_BASE } from '../config/api'
+import { apiFetch } from '../utils/apiFetch'
+import { responseJson, tryResponseJson } from '../utils/apiJson'
 import {
   AGENDAMENTO_STATUS_LABEL,
   AGENDAMENTO_STATUS_RING,
@@ -69,11 +71,11 @@ export function AgendaPage() {
     try {
       const de = toYMD(weekStart)
       const ate = toYMD(weekEnd)
-      const res = await fetch(
+      const res = await apiFetch(
         `${API_BASE}/agendamentos?de=${de}&ate=${encodeURIComponent(ate)}`,
       )
       if (!res.ok) throw new Error('Falha ao carregar agendamentos')
-      setLista((await res.json()) as Agendamento[])
+      setLista(await responseJson<Agendamento[]>(res))
     } catch (e) {
       setLista([])
       setError(e instanceof Error ? e.message : 'Erro ao carregar')
@@ -90,9 +92,11 @@ export function AgendaPage() {
     let cancelled = false
     void (async () => {
       try {
-        const res = await fetch(`${API_BASE}/integracoes/google-calendar/status`)
+        const res = await apiFetch(
+          `${API_BASE}/integracoes/google-calendar/status`,
+        )
         if (!res.ok) return
-        const data = (await res.json()) as GoogleCalStatus
+        const data = await responseJson<GoogleCalStatus>(res)
         if (!cancelled) setGoogleCal(data)
       } catch {
         if (!cancelled) setGoogleCal(null)
@@ -118,8 +122,10 @@ export function AgendaPage() {
     setSearchParams({}, { replace: true })
     void (async () => {
       try {
-        const res = await fetch(`${API_BASE}/integracoes/google-calendar/status`)
-        if (res.ok) setGoogleCal((await res.json()) as GoogleCalStatus)
+        const res = await apiFetch(
+          `${API_BASE}/integracoes/google-calendar/status`,
+        )
+        if (res.ok) setGoogleCal(await responseJson<GoogleCalStatus>(res))
       } catch {
         /* ignore */
       }
@@ -130,9 +136,12 @@ export function AgendaPage() {
     if (!window.confirm('Desconectar Google Agenda? Novos agendamentos não serão mais enviados.'))
       return
     try {
-      const res = await fetch(`${API_BASE}/integracoes/google-calendar/disconnect`, {
-        method: 'POST',
-      })
+      const res = await apiFetch(
+        `${API_BASE}/integracoes/google-calendar/disconnect`,
+        {
+          method: 'POST',
+        },
+      )
       if (!res.ok) throw new Error('Falha')
       setGoogleCal((c) =>
         c ? { ...c, connected: false } : { oauthConfigured: true, connected: false },
@@ -243,34 +252,38 @@ export function AgendaPage() {
       }
       if (modal === 'editar' && editando) {
         body.status = fStatus
-        const res = await fetch(`${API_BASE}/agendamentos/${editando.id}`, {
+        const res = await apiFetch(`${API_BASE}/agendamentos/${editando.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         })
         if (!res.ok) {
-          const b = await res.json().catch(() => null)
+          const b = await tryResponseJson<{ message?: string | string[] }>(res)
           throw new Error(
             Array.isArray(b?.message)
               ? b.message.join(', ')
-              : b?.message ?? `Erro ${res.status}`,
+              : typeof b?.message === 'string'
+                ? b.message
+                : `Erro ${res.status}`,
           )
         }
       } else {
-        const res = await fetch(`${API_BASE}/agendamentos`, {
+        const res = await apiFetch(`${API_BASE}/agendamentos`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         })
         if (!res.ok) {
-          const b = await res.json().catch(() => null)
+          const b = await tryResponseJson<{ message?: string | string[] }>(res)
           throw new Error(
             Array.isArray(b?.message)
               ? b.message.join(', ')
-              : b?.message ?? `Erro ${res.status}`,
+              : typeof b?.message === 'string'
+                ? b.message
+                : `Erro ${res.status}`,
           )
         }
-        const criado = (await res.json()) as Agendamento
+        const criado = await responseJson<Agendamento>(res)
         if (googleCal?.connected && !criado.googleEventId) {
           setGoogleFlash(
             'Agendamento salvo, mas o Google Agenda não recebeu o evento. Reinicie o backend após editar o .env e confira o terminal (mensagens Google Calendar).',
@@ -289,7 +302,7 @@ export function AgendaPage() {
   async function patchStatus(a: Agendamento, status: AgendamentoStatus) {
     setError(null)
     try {
-      const res = await fetch(`${API_BASE}/agendamentos/${a.id}`, {
+      const res = await apiFetch(`${API_BASE}/agendamentos/${a.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
@@ -310,7 +323,7 @@ export function AgendaPage() {
       return
     setError(null)
     try {
-      const res = await fetch(`${API_BASE}/agendamentos/${a.id}`, {
+      const res = await apiFetch(`${API_BASE}/agendamentos/${a.id}`, {
         method: 'DELETE',
       })
       if (!res.ok) throw new Error('Não foi possível excluir')

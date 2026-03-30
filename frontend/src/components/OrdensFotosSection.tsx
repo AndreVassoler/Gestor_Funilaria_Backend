@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
+import { apiFetch } from '../utils/apiFetch'
+import { responseJson } from '../utils/apiJson'
 import type { OrdemFotoItem } from '../types/ordem'
 
 type Props = {
@@ -15,9 +17,9 @@ export function OrdensFotosSection({ ordemId, apiBase, onChange }: Props) {
   const load = useCallback(async () => {
     setErr(null)
     try {
-      const r = await fetch(`${apiBase}/ordens-servico/${ordemId}/fotos`)
+      const r = await apiFetch(`${apiBase}/ordens-servico/${ordemId}/fotos`)
       if (!r.ok) throw new Error('Falha ao carregar fotos')
-      const data: OrdemFotoItem[] = await r.json()
+      const data = await responseJson<OrdemFotoItem[]>(r)
       setFotos(data)
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Erro')
@@ -37,7 +39,7 @@ export function OrdensFotosSection({ ordemId, apiBase, onChange }: Props) {
     fd.append('arquivo', file)
     fd.append('tipo', tipo)
     try {
-      const r = await fetch(`${apiBase}/ordens-servico/${ordemId}/fotos`, {
+      const r = await apiFetch(`${apiBase}/ordens-servico/${ordemId}/fotos`, {
         method: 'POST',
         body: fd,
       })
@@ -56,7 +58,7 @@ export function OrdensFotosSection({ ordemId, apiBase, onChange }: Props) {
     if (!confirm('Remover esta foto?')) return
     setErr(null)
     try {
-      const r = await fetch(
+      const r = await apiFetch(
         `${apiBase}/ordens-servico/${ordemId}/fotos/${fotoId}`,
         { method: 'DELETE' },
       )

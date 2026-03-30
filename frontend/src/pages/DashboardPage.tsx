@@ -4,6 +4,8 @@ import { DeleteOrdemConfirmModal } from '../components/DeleteOrdemConfirmModal'
 import { EditOrdemModal } from '../components/EditOrdemModal'
 import { FlashToast } from '../components/FlashToast'
 import { API_BASE } from '../config/api'
+import { apiFetch } from '../utils/apiFetch'
+import { responseJson } from '../utils/apiJson'
 import {
   inputClass,
   STATUS_LABEL,
@@ -135,13 +137,13 @@ export function DashboardPage() {
     const next = STATUS_NEXT[o.status]
     setError(null)
     try {
-      const res = await fetch(`${API_BASE}/ordens-servico/${o.id}`, {
+      const res = await apiFetch(`${API_BASE}/ordens-servico/${o.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: next }),
       })
       if (!res.ok) throw new Error('Falha ao atualizar status')
-      const updated: OrdemServico = await res.json()
+      const updated = await responseJson<OrdemServico>(res)
       setOrdens((prev) => prev.map((x) => (x.id === updated.id ? updated : x)))
       setSuccessMsg(`Status: ${STATUS_LABEL[next]}.`)
     } catch (e) {
@@ -155,7 +157,7 @@ export function DashboardPage() {
     setError(null)
     setExcluindo(true)
     try {
-      const res = await fetch(`${API_BASE}/ordens-servico/${id}`, {
+      const res = await apiFetch(`${API_BASE}/ordens-servico/${id}`, {
         method: 'DELETE',
       })
       if (!res.ok) throw new Error('Falha ao excluir')

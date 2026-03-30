@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { OrdemServico, OrdemServicoStatus } from '../types/ordem'
 import * as F from '../utils/ordemForm'
+import { apiFetch } from '../utils/apiFetch'
+import { responseJson, tryResponseJson } from '../utils/apiJson'
 import { downloadPdfFromUrl } from '../utils/pdfDownload'
 import { MarcaModeloFields } from './MarcaModeloFields'
 import { OrdensFotosSection } from './OrdensFotosSection'
@@ -110,7 +112,7 @@ export function EditOrdemModal({
     }
 
     try {
-      const res = await fetch(`${apiBase}/ordens-servico/${ordem.id}`, {
+      const res = await apiFetch(`${apiBase}/ordens-servico/${ordem.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -133,12 +135,15 @@ export function EditOrdemModal({
         }),
       })
       if (!res.ok) {
-        const body = await res.json().catch(() => null)
-        throw new Error(
-          body?.message?.[0] ?? `Não foi possível salvar (${res.status})`,
-        )
+        const body = await tryResponseJson<{ message?: string | string[] }>(res)
+        const msg = Array.isArray(body?.message)
+          ? body.message[0]
+          : typeof body?.message === 'string'
+            ? body.message
+            : undefined
+        throw new Error(msg ?? `Não foi possível salvar (${res.status})`)
       }
-      await res.json()
+      await responseJson<unknown>(res)
       onSaved()
       onClose()
     } catch (e) {

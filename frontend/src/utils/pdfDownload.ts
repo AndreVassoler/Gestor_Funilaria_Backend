@@ -1,3 +1,5 @@
+import { apiFetch } from './apiFetch'
+
 function pickFilename(
   dispo: string | null,
   fallbackFilename: string,
@@ -12,7 +14,7 @@ export async function downloadPdfFromUrl(
   url: string,
   fallbackFilename: string,
 ) {
-  const res = await fetch(url)
+  const res = await apiFetch(url)
   if (!res.ok) {
     throw new Error(`Falha ao gerar PDF (${res.status})`)
   }
@@ -30,7 +32,7 @@ export async function downloadAttachmentFromUrl(
   url: string,
   fallbackFilename: string,
 ) {
-  const res = await fetch(url)
+  const res = await apiFetch(url)
   if (!res.ok) {
     throw new Error(`Falha ao baixar arquivo (${res.status})`)
   }
