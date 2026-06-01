@@ -28,10 +28,6 @@ jobs:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/gestor_funilaria_backend_test
       DATABASE_SSL: 'false'
 
-    defaults:
-      run:
-        working-directory: backend
-
     steps:
       - uses: actions/checkout@v4
 
@@ -39,7 +35,7 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-          cache-dependency-path: backend/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - run: npm ci
       - run: npm run build

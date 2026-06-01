@@ -10,7 +10,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     const secret = process.env.JWT_SECRET;
     if (!secret) {
       throw new Error(
-        'Defina JWT_SECRET no ambiente (veja backend/.env.example).',
+        'Defina JWT_SECRET no ambiente (veja .env.example).',
       );
     }
     super({

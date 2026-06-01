@@ -16,7 +16,7 @@ import { RootController } from './root.controller';
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
   throw new Error(
-    'Defina DATABASE_URL com a URI do PostgreSQL (veja backend/.env.example).',
+    'Defina DATABASE_URL com a URI do PostgreSQL (veja .env.example).',
   );
 }
 

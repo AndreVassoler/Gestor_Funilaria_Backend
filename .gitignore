@@ -1,5 +1,4 @@
 # Gestor_Funilaria_Backend — ignorados na raiz do repositório
-# Detalhes do backend (uploads, SQLite): backend/.gitignore
 
 # --- Dependências ---
 node_modules/
@@ -40,6 +39,14 @@ Desktop.ini
 *.swp
 *.swo
 *~
+
+# --- Banco local (legado SQLite) ---
+database.sqlite
+*.sqlite
+
+# --- Uploads de fotos (conteúdo ignorado; pasta mantida via .gitkeep) ---
+uploads/*
+!uploads/.gitkeep
 
 # --- Legado: front removido deste repo (painel em Gestor_Funilaria_Frontend) ---
 frontend/

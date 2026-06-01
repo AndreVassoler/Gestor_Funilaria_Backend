@@ -18,7 +18,7 @@ import { JwtStrategy } from './jwt.strategy';
         const secret = process.env.JWT_SECRET;
         if (!secret) {
           throw new Error(
-            'Defina JWT_SECRET no ambiente (veja backend/.env.example).',
+            'Defina JWT_SECRET no ambiente (veja .env.example).',
           );
         }
         const expiresRaw = process.env.JWT_EXPIRES_IN?.trim();
