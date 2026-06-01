@@ -1,7 +1,45 @@
-# Raiz do monorepo — complementa backend/.gitignore e frontend/.gitignore
+# Gestor_Funilaria_Backend — ignorados na raiz do repositório
+# Detalhes do backend (uploads, SQLite): backend/.gitignore
+
+# --- Dependências ---
+node_modules/
+
+# --- Build e testes ---
+dist/
+build/
+coverage/
+.nyc_output/
+*.tsbuildinfo
+
+# --- Variáveis de ambiente (nunca commitar segredos) ---
+.env
+.env.*
+!.env.example
+
+# --- Logs e arquivos temporários ---
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.tmp/
+temp/
+tmp/
+
+# --- Sistema operacional ---
 .DS_Store
 Thumbs.db
-*.log
-.idea
+ehthumbs.db
+Desktop.ini
+
+# --- IDEs e editores ---
+.idea/
+*.iml
 .vscode/*
 !.vscode/extensions.json
+*.swp
+*.swo
+*~
+
+# --- Legado: front removido deste repo (painel em Gestor_Funilaria_Frontend) ---
+frontend/

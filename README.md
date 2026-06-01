@@ -1,100 +1,69 @@
-# Sistema Funilaria
+# Gestor_Funilaria_Backend
 
-Aplicação web para gestão de **ordens de serviço** em funilaria: painel de OS, cadastro, edição, fotos, relatórios e exportação em PDF.
+API REST para gestão de **ordens de serviço** em funilaria: CRUD de OS, fotos, agendamentos, relatórios, exportação PDF/Excel, autenticação JWT e integração com Google Calendar.
 
-## Estrutura do repositório
+O painel web fica no repositório separado **[Gestor_Funilaria_Frontend](https://github.com/AndreVassoler/Gestor_Funilaria_Frontend)**.
 
-Monorepo com duas pastas principais:
+## Estrutura
 
 | Pasta      | Descrição                                      |
 | ---------- | ---------------------------------------------- |
-| `backend/` | API REST em **NestJS** + **TypeORM** + **PostgreSQL** |
-| `frontend/`| Interface em **React 19** + **Vite** + **Tailwind CSS** |
+| `backend/` | NestJS + TypeORM + PostgreSQL                  |
 
 ## Tecnologias
 
-- **Backend:** NestJS 11, TypeORM, PostgreSQL (`pg`), Multer (upload de fotos), PDFKit / ExcelJS (relatórios e exportações)
-- **Frontend:** React 19, React Router, Recharts, Vite 8, Tailwind CSS 4
+- **NestJS 11**, TypeORM, PostgreSQL (`pg`)
+- Multer (upload de fotos), PDFKit / ExcelJS (relatórios e exportações)
+- JWT, Google Calendar (opcional)
 
 ## Pré-requisitos
 
-- [Node.js](https://nodejs.org/) (recomendado: LTS atual)
-- npm (vem com o Node)
+- [Node.js](https://nodejs.org/) (LTS recomendado)
+- npm
+- PostgreSQL (local, Docker ou [Supabase](https://supabase.com/))
 
-## Como rodar em desenvolvimento
-
-### 1. Backend
+## Desenvolvimento
 
 ```bash
 cd backend
 npm install
+cp .env.example .env   # preencha DATABASE_URL, JWT_SECRET, etc.
 npm run start:dev
 ```
 
-A API sobe em **http://localhost:3000** (ou na porta definida pela variável `PORT`).
+A API sobe em **http://localhost:3000** (ou na porta `PORT`).
 
-- **Banco:** PostgreSQL. Copie `backend/.env.example` para `backend/.env` e preencha `DATABASE_URL` (pode ser instância local, Docker ou [Supabase](https://supabase.com/) — o produto expõe um Postgres gerenciado). Com TLS (nuvem), não defina `DATABASE_SSL` ou deixe diferente de `false`. Postgres local sem SSL: `DATABASE_SSL=false`.
-- Fotos: servidas em `/uploads/` a partir da pasta `backend/uploads/` (conteúdo ignorado pelo Git, exceto `.gitkeep`).
+- **Banco:** copie `backend/.env.example` para `backend/.env`. Com TLS (nuvem), não defina `DATABASE_SSL` ou deixe diferente de `false`. Postgres local sem SSL: `DATABASE_SSL=false`.
+- **Painel local:** defina `FRONTEND_APP_URL_LOCAL` (ex.: `http://localhost:5173`) apontando para o app do repositório **Gestor_Funilaria_Frontend**.
+- Fotos: servidas em `/uploads/` a partir de `backend/uploads/` (ignorado pelo Git, exceto `.gitkeep`).
 
-### 2. Frontend
+### Variáveis de ambiente
 
-Em outro terminal:
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-O Vite costuma usar **http://localhost:5173**. O frontend chama a API em `http://localhost:3000` por padrão.
-
-### Variáveis de ambiente (backend)
-
-Obrigatório: `backend/.env` com pelo menos `DATABASE_URL` (veja `backend/.env.example`).
-
-### Variáveis de ambiente (frontend)
-
-Opcional: criar `frontend/.env` com a URL da API se não for o padrão:
-
-```env
-VITE_API_URL=http://localhost:3000
-```
+Obrigatório: `DATABASE_URL`, `JWT_SECRET`. Veja `backend/.env.example` para OAuth Google, credenciais do painel e URL do front em produção (`FRONTEND_APP_URL`).
 
 ## CI (GitHub Actions)
 
-No push ou pull request para `main`, o workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) sobe **PostgreSQL 16** para o job do backend, define `DATABASE_SSL=false` e roda `build`, `test` e `test:e2e`. O frontend roda `npm ci` e `npm run build` em job separado.
+No push ou pull request para `main`, o workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) sobe PostgreSQL 16, define `DATABASE_SSL=false` e roda `build`, `test` e `test:e2e` em `backend/`.
 
-## Scripts úteis
-
-**Backend** (`backend/`)
+## Scripts úteis (`backend/`)
 
 - `npm run start:dev` — API com reload
 - `npm run build` — compila para `dist/`
 - `npm run start:prod` — executa `dist/main` (após `build`)
 - `npm run test` — testes unitários
-- `npm run test:e2e` — testes e2e (exige `DATABASE_URL` apontando para um PostgreSQL acessível, ex.: container local)
+- `npm run test:e2e` — testes e2e (exige `DATABASE_URL` com PostgreSQL acessível)
 
-**Frontend** (`frontend/`)
+## API
 
-- `npm run dev` — servidor de desenvolvimento
-- `npm run build` — build de produção
-- `npm run preview` — pré-visualiza o build
+Prefixo principal: **`/ordens-servico`** (CRUD, resumo, fotos, exportações). Autenticação em `/auth/login`.
 
-## Funcionalidades (visão geral)
+## Repositórios
 
-- **Dashboard** (`/`) — listagem e filtros de ordens de serviço, resumo, alteração de status
-- **Nova ordem** (`/nova`) — cadastro de OS (cliente, veículo, serviços, etc.)
-- **Relatórios** (`/relatorios`) — painel com gráficos e exportações
-- **Fotos** por ordem (upload e listagem via API)
-- **Exportação PDF** e relatórios via endpoints em `ordens-servico` (consulte o controller no backend para parâmetros)
-
-A API principal está sob o prefixo **`/ordens-servico`** (CRUD, resumo, fotos, exportações).
-
-## Documentação adicional
-
-- `backend/README.md` — texto padrão do template NestJS (instalação e testes do framework)
-- `frontend/README.md` — informações do template Vite + React
+| Repositório | Função |
+| ----------- | ------ |
+| [Gestor_Funilaria_Backend](https://github.com/AndreVassoler/Gestor_Funilaria_Backend) | Esta API |
+| [Gestor_Funilaria_Frontend](https://github.com/AndreVassoler/Gestor_Funilaria_Frontend) | Painel React (Vite) |
 
 ## Licença
 
-Os pacotes `backend` e `frontend` estão marcados como privados no `package.json`. Ajuste a licença conforme o uso do seu projeto.
+Pacote privado (`package.json`). Ajuste conforme o uso do projeto.

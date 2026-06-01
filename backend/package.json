@@ -1,7 +1,7 @@
 {
-  "name": "backend",
+  "name": "gestor-funilaria-backend",
   "version": "0.0.1",
-  "description": "",
+  "description": "Gestor_Funilaria_Backend — API NestJS para ordens de serviço",
   "author": "",
   "private": true,
   "license": "UNLICENSED",
