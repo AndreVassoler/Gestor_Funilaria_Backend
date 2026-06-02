@@ -1,5 +1,4 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
-import { OrdemServicoFoto } from './ordem-servico-foto.entity';
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 export enum OrdemServicoStatus {
   ABERTO = 'aberto',
@@ -55,7 +54,4 @@ export class OrdemServico {
     default: OrdemServicoStatus.ABERTO,
   })
   status: OrdemServicoStatus;
-
-  @OneToMany(() => OrdemServicoFoto, (f) => f.ordem)
-  fotos: OrdemServicoFoto[];
 }

@@ -6,7 +6,6 @@ import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
 import { In, Repository, SelectQueryBuilder } from 'typeorm';
 import { FUNILARIA_NOME } from '../brand';
-import { OrdemServicoFoto } from './ordem-servico-foto.entity';
 import { OrdemServico, OrdemServicoStatus } from './ordem-servico.entity';
 
 function fmtBrl(n: number) {
@@ -102,13 +101,7 @@ export class OrdensPdfService {
   constructor(
     @InjectRepository(OrdemServico)
     private readonly ordemRepo: Repository<OrdemServico>,
-    @InjectRepository(OrdemServicoFoto)
-    private readonly fotoRepo: Repository<OrdemServicoFoto>,
   ) {}
-
-  private uploadsRoot() {
-    return path.join(process.cwd(), 'uploads');
-  }
 
   /**
    * Procura a logo principal da oficina em caminhos conhecidos.
@@ -214,18 +207,10 @@ export class OrdensPdfService {
     doc.x = 50;
   }
 
-  private async loadFotos(ordemId: number) {
-    return this.fotoRepo.find({
-      where: { ordemId },
-      order: { id: 'ASC' },
-    });
-  }
-
   private drawOrdemPage(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     doc: any,
     o: OrdemServico,
-    fotos: OrdemServicoFoto[],
     opts: { assinatura: boolean; titulo?: string },
   ) {
     const left = 50;
@@ -310,44 +295,6 @@ export class OrdensPdfService {
       .text(o.descricao || '—', { width: contentW });
     doc.moveDown();
 
-    const antes = fotos.filter((f) => f.tipo === 'antes');
-    const depois = fotos.filter((f) => f.tipo === 'depois');
-    doc
-      .fillColor(PDF_THEME.muted)
-      .font('Helvetica')
-      .fontSize(9)
-      .text(
-        `Anexos: ${antes.length} foto(s) antes · ${depois.length} depois`,
-        { width: contentW },
-      );
-
-    const addImgs = (label: string, list: OrdemServicoFoto[]) => {
-      if (!list.length) return;
-      doc.moveDown(0.35);
-      doc
-        .fillColor(PDF_THEME.tableHeaderBg)
-        .font('Helvetica-Bold')
-        .fontSize(10)
-        .text(`${label}`, { width: contentW });
-      doc.fillColor(PDF_THEME.body).font('Helvetica').fontSize(9);
-      for (const f of list.slice(0, 3)) {
-        const full = path.join(this.uploadsRoot(), f.arquivo);
-        if (fs.existsSync(full)) {
-          try {
-            doc.moveDown(0.2);
-            doc.image(full, { width: 220, align: 'left' });
-          } catch {
-            doc.text(`(imagem indisponível: ${f.arquivo})`);
-          }
-        }
-      }
-      if (list.length > 3) {
-        doc.text(`… e mais ${list.length - 3} foto(s).`);
-      }
-    };
-    addImgs('Antes', antes);
-    addImgs('Depois', depois);
-
     if (opts.assinatura) {
       doc.moveDown(1.5);
       const yDecl = doc.y;
@@ -383,7 +330,6 @@ export class OrdensPdfService {
   async pdfOrdemUnica(id: number): Promise<Buffer> {
     const o = await this.ordemRepo.findOne({ where: { id } });
     if (!o) throw new NotFoundException(`Ordem #${id} não encontrada`);
-    const fotos = await this.loadFotos(id);
     return new Promise((resolve, reject) => {
       const doc = new PDFDocument({ margin: 50, size: 'A4' });
       const chunks: Buffer[] = [];
@@ -393,7 +339,7 @@ export class OrdensPdfService {
       this.drawPdfPageBanner(doc, `Ordem de serviço — ${FUNILARIA_NOME}`, [
         `Documento para assinatura · ${fmtDataHoraBr(new Date())}`,
       ]);
-      this.drawOrdemPage(doc, o, fotos, { assinatura: true });
+      this.drawOrdemPage(doc, o, { assinatura: true });
       doc.end();
     });
   }
@@ -469,8 +415,7 @@ export class OrdensPdfService {
               );
             }
             first = false;
-            const fotos = await this.loadFotos(o.id);
-            this.drawOrdemPage(doc, o, fotos, {
+            this.drawOrdemPage(doc, o, {
               assinatura: false,
               titulo: `OS #${o.id}`,
             });

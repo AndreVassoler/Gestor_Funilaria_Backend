@@ -10,15 +10,10 @@ import {
   Post,
   Query,
   Res,
-  UploadedFile,
-  UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { CreateOrdemServicoDto } from './dto/create-ordem-servico.dto';
 import { UpdateOrdemServicoDto } from './dto/update-ordem-servico.dto';
-import { fotosMulterOptions } from './fotos-multer.config';
-import { OrdemFotoService } from './ordem-foto.service';
 import { OrdemServicoStatus } from './ordem-servico.entity';
 import {
   OrdensPdfService,
@@ -30,7 +25,6 @@ import { OrdensServicoService } from './ordens-servico.service';
 export class OrdensServicoController {
   constructor(
     private readonly service: OrdensServicoService,
-    private readonly fotoService: OrdemFotoService,
     private readonly pdfService: OrdensPdfService,
   ) {}
 
@@ -205,32 +199,6 @@ export class OrdensServicoController {
       'Content-Disposition': `attachment; filename="os-${id}-assinatura.pdf"`,
     });
     res.send(buf);
-  }
-
-  @Get(':id/fotos')
-  listFotos(@Param('id', ParseIntPipe) id: number) {
-    return this.fotoService.list(id);
-  }
-
-  @Post(':id/fotos')
-  @UseInterceptors(FileInterceptor('arquivo', fotosMulterOptions()))
-  async uploadFoto(
-    @Param('id', ParseIntPipe) id: number,
-    @UploadedFile() file: Express.Multer.File | undefined,
-    @Body('tipo') tipo: string,
-  ) {
-    if (!file) {
-      throw new BadRequestException('Envie um arquivo no campo "arquivo".');
-    }
-    return this.fotoService.add(id, tipo, file);
-  }
-
-  @Delete(':id/fotos/:fotoId')
-  deleteFoto(
-    @Param('id', ParseIntPipe) id: number,
-    @Param('fotoId', ParseIntPipe) fotoId: number,
-  ) {
-    return this.fotoService.remove(id, fotoId);
   }
 
   @Get(':id')

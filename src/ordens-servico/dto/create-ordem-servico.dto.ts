@@ -44,10 +44,10 @@ export class CreateOrdemServicoDto {
   @IsNotEmpty()
   placa: string;
 
-  @IsOptional()
   @IsString()
-  @MinLength(1)
-  pecasReparo?: string;
+  @IsNotEmpty()
+  @MinLength(2)
+  pecasReparo: string;
 
   @IsString()
   descricao: string;

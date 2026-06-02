@@ -4,10 +4,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { existsSync, rmSync } from 'fs';
-import { join } from 'path';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { CreateOrdemServicoDto } from './dto/create-ordem-servico.dto';
+import { validarPecasReparoParaCotacao } from './pecas-reparo-precos';
 import { UpdateOrdemServicoDto } from './dto/update-ordem-servico.dto';
 import { OrdemServico, OrdemServicoStatus } from './ordem-servico.entity';
 
@@ -47,10 +46,26 @@ export class OrdensServicoService {
   }
 
   create(dto: CreateOrdemServicoDto): Promise<OrdemServico> {
+    let pecas: string[];
+    try {
+      pecas = validarPecasReparoParaCotacao(dto.pecasReparo);
+    } catch (e) {
+      const code = e instanceof Error ? e.message : '';
+      if (code === 'PEÇAS_OBRIGATÓRIAS') {
+        throw new BadRequestException(
+          'Selecione ao menos uma peça para cotar o serviço.',
+        );
+      }
+      if (code === 'PEÇAS_INVALIDAS') {
+        throw new BadRequestException('Peça de reparo inválida na cotação.');
+      }
+      throw e;
+    }
     const { dataAbertura, previsaoEntrega, ...rest } = dto;
     const status = dto.status ?? OrdemServicoStatus.ABERTO;
     const entity = this.repo.create({
       ...rest,
+      pecasReparo: dto.pecasReparo.trim(),
       status,
       dataAbertura: dataAbertura ? new Date(dataAbertura) : new Date(),
       previsaoEntrega: previsaoEntrega ? new Date(previsaoEntrega) : null,
@@ -230,9 +245,5 @@ export class OrdensServicoService {
   async remove(id: number): Promise<void> {
     const row = await this.findOne(id);
     await this.repo.remove(row);
-    const dir = join(process.cwd(), 'uploads', 'ordens', String(id));
-    if (existsSync(dir)) {
-      rmSync(dir, { recursive: true, force: true });
-    }
   }
 }

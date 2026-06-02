@@ -1,6 +1,6 @@
 # Gestor_Funilaria_Backend
 
-API REST para gestão de **ordens de serviço** em funilaria: CRUD de OS, fotos, agendamentos, relatórios, exportação PDF/Excel e autenticação JWT.
+API REST para gestão de **ordens de serviço** em funilaria: CRUD de OS, agendamentos, relatórios, exportação PDF/Excel e autenticação JWT.
 
 O painel web fica no repositório separado **[Gestor_Funilaria_Frontend](https://github.com/AndreVassoler/Gestor_Funilaria_Frontend)**.
 
@@ -10,12 +10,10 @@ O painel web fica no repositório separado **[Gestor_Funilaria_Frontend](https:/
 | --------- | --------------------------------- |
 | `src/`    | NestJS + TypeORM + PostgreSQL     |
 | `test/`   | Testes e2e                        |
-| `uploads/`| Fotos das ordens de serviço       |
-
 ## Tecnologias
 
 - **NestJS 11**, TypeORM, PostgreSQL (`pg`)
-- Multer (upload de fotos), PDFKit / ExcelJS (relatórios e exportações)
+- PDFKit / ExcelJS (relatórios e exportações)
 - JWT
 
 ## Pré-requisitos
@@ -36,8 +34,6 @@ A API sobe em **http://localhost:3000** (ou na porta `PORT`).
 
 - **Banco:** copie `.env.example` para `.env`. Com TLS (nuvem), não defina `DATABASE_SSL` ou deixe diferente de `false`. Postgres local sem SSL: `DATABASE_SSL=false`.
 - **Painel local:** defina `FRONTEND_APP_URL_LOCAL` (ex.: `http://localhost:5173`) apontando para o app do repositório **Gestor_Funilaria_Frontend**.
-- Fotos: servidas em `/uploads/` a partir de `uploads/` (ignorado pelo Git, exceto `.gitkeep`).
-
 ### Variáveis de ambiente
 
 Obrigatório: `DATABASE_URL`, `JWT_SECRET`. Veja `.env.example` para credenciais do painel e URL do front em produção (`FRONTEND_APP_URL`).
@@ -77,7 +73,7 @@ No push ou pull request para `main`, o workflow [`.github/workflows/ci.yml`](.gi
 
 ## API
 
-Prefixo principal: **`/ordens-servico`** (CRUD, resumo, fotos, exportações). Autenticação em `/auth/login`.
+Prefixo principal: **`/ordens-servico`** (CRUD, resumo, exportações). Autenticação em `/auth/login`.
 
 ## Repositórios
 
