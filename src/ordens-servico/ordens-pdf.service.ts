@@ -59,14 +59,16 @@ function statusLabel(s: OrdemServicoStatus) {
   return m[s] ?? s;
 }
 
-/** Paleta alinhada ao visual do app (índigo / slate). */
+/** Paleta alinhada ao padrão visual da AutoCar / Funilaria Vassoler. */
 const PDF_THEME = {
-  bannerBg: '#3730a3',
-  bannerAccent: '#a5b4fc',
-  body: '#0f172a',
-  muted: '#64748b',
+  bannerBg: '#050507',
+  bannerAccent: '#1a6b45',
+  bannerAccentSoft: '#248f5c',
+  bannerHighlight: '#c9a227',
+  body: '#0f1419',
+  muted: '#5d6b7a',
   cardBg: '#f1f5f9',
-  tableHeaderBg: '#4f46e5',
+  tableHeaderBg: '#1e5596',
   tableHeaderText: '#ffffff',
   tableStripe: '#f8fafc',
   border: '#cbd5e1',
@@ -109,6 +111,28 @@ export class OrdensPdfService {
   }
 
   /**
+   * Procura a logo principal da oficina em caminhos conhecidos.
+   * Prioriza a logo do frontend para manter o mesmo arquivo usado no site.
+   */
+  private resolveLogoPath() {
+    const candidates = [
+      path.join(
+        process.cwd(),
+        '..',
+        'Gestor_Funilaria_FrontEnd',
+        'public',
+        'logo-autocar-vassoler.png',
+      ),
+      path.join(process.cwd(), 'public', 'logo-autocar-vassoler.png'),
+      path.join(process.cwd(), 'assets', 'logo-autocar-vassoler.png'),
+    ];
+    for (const file of candidates) {
+      if (fs.existsSync(file)) return file;
+    }
+    return null;
+  }
+
+  /**
    * Cabeçalho visual (faixa índigo) — primeira página dos relatórios.
    */
   private drawPdfPageBanner(
@@ -118,6 +142,7 @@ export class OrdensPdfService {
     subtitleLines: string[],
   ) {
     const w = PDF_PAGE_W;
+    const logo = this.resolveLogoPath();
     doc.save();
     doc.rect(0, 0, w, PDF_BANNER_H).fill(PDF_THEME.bannerBg);
     doc
@@ -126,12 +151,37 @@ export class OrdensPdfService {
       .moveTo(0, PDF_BANNER_H)
       .lineTo(w, PDF_BANNER_H)
       .stroke();
+    doc
+      .strokeColor(PDF_THEME.bannerHighlight)
+      .lineWidth(1.2)
+      .moveTo(24, PDF_BANNER_H - 6)
+      .lineTo(w - 24, PDF_BANNER_H - 6)
+      .stroke();
+    let titleY = 24;
+    if (logo) {
+      try {
+        doc.image(logo, 52, 11, {
+          fit: [78, 56],
+          align: 'left',
+          valign: 'center',
+        });
+        titleY = 20;
+      } catch {
+        // Mantém apenas texto quando a logo não puder ser carregada.
+      }
+    }
     doc.fillColor(PDF_THEME.white).font('Helvetica-Bold').fontSize(17);
-    doc.text(title, 0, 24, { width: w, align: 'center' });
+    doc.text(title, logo ? 126 : 0, titleY, {
+      width: logo ? w - 166 : w,
+      align: logo ? 'left' : 'center',
+    });
     doc.font('Helvetica').fontSize(9.5);
     let subY = 46;
     for (const line of subtitleLines) {
-      doc.text(line, 48, subY, { width: w - 96, align: 'center' });
+      doc.text(line, logo ? 126 : 48, subY, {
+        width: logo ? w - 166 : w - 96,
+        align: logo ? 'left' : 'center',
+      });
       subY += 12;
     }
     doc.restore();
@@ -149,8 +199,14 @@ export class OrdensPdfService {
     const w = PDF_PAGE_W;
     const h = 34;
     doc.save();
-    doc.rect(0, 0, w, h).fill('#e0e7ff');
-    doc.fillColor('#312e81').font('Helvetica-Bold').fontSize(9.5);
+    doc.rect(0, 0, w, h).fill('#e8edf5');
+    doc
+      .strokeColor(PDF_THEME.bannerAccentSoft)
+      .lineWidth(1)
+      .moveTo(0, h - 1)
+      .lineTo(w, h - 1)
+      .stroke();
+    doc.fillColor(PDF_THEME.bannerAccent).font('Helvetica-Bold').fontSize(9.5);
     doc.text(line, 0, 11, { width: w, align: 'center' });
     doc.restore();
     doc.fillColor(PDF_THEME.body);
@@ -176,16 +232,24 @@ export class OrdensPdfService {
     const contentW = 495;
 
     const lineKV = (label: string, val: string) => {
+      const labelW = 118;
+      const valueX = left + labelW;
+      const valueW = contentW - labelW;
+      const startY = doc.y;
       doc
         .fillColor(PDF_THEME.muted)
         .font('Helvetica-Bold')
-        .fontSize(8)
-        .text(label, { continued: true, lineBreak: false });
+        .fontSize(8.8)
+        .text(label, left, startY, {
+          width: labelW - 8,
+          align: 'left',
+          lineBreak: false,
+        });
       doc
         .fillColor(PDF_THEME.body)
         .font('Helvetica')
         .fontSize(10)
-        .text(val, { width: contentW });
+        .text(val, valueX, startY, { width: valueW, align: 'left' });
     };
 
     if (opts.titulo) {
@@ -223,17 +287,13 @@ export class OrdensPdfService {
       .fontSize(11)
       .text(`Ordem de serviço #${o.id}`, { width: contentW });
     doc.moveDown(0.35);
-    lineKV('Cliente: ', o.cliente);
-    lineKV('Contato: ', o.contato);
-    lineKV(
-      'Veículo: ',
-      `${o.marca} ${o.modelo} (${o.ano}) — Placa: ${o.placa}`,
-    );
-    lineKV('Status: ', statusLabel(o.status));
-    lineKV('Abertura: ', fmtData(o.dataAbertura));
-    lineKV('Conclusão: ', fmtData(o.dataConclusao));
-    lineKV('Previsão entrega: ', fmtData(o.previsaoEntrega));
-    lineKV('Valor estimado: ', fmtBrl(o.valor));
+    lineKV('Nome do cliente:', o.cliente);
+    lineKV('Telefone:', o.contato);
+    lineKV('Carro:', `${o.marca} ${o.modelo} (${o.ano})`);
+    lineKV('Placa:', o.placa);
+    lineKV('Local do reparo:', o.pecasReparo?.trim() || 'Não informado');
+    lineKV('Valor:', fmtBrl(o.valor));
+    lineKV('Previsão entrega:', fmtData(o.previsaoEntrega));
     doc.y = yCard + cardH + 10;
     doc.x = left;
 

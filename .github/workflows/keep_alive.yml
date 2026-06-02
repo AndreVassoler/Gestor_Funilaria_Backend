@@ -1,0 +1,51 @@
+name: Supabase Keep Alive
+
+on:
+  schedule:
+    # Todo dia às 09:00 UTC
+    - cron: "0 9 * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Ping Supabase (RPC keepalive) com retry
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+
+          URL="${SUPABASE_URL}/rest/v1/rpc/keepalive"
+          HEADERS=(
+            -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}"
+            -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}"
+            -H "Content-Type: application/json"
+          )
+
+          max_attempts=5
+          sleep_seconds=12
+          attempt=1
+
+          while [ "$attempt" -le "$max_attempts" ]; do
+            echo "Tentativa ${attempt}/${max_attempts}..."
+
+            response="$(curl -sS --fail-with-body -X POST "$URL" "${HEADERS[@]}" -d '{}')" && break
+
+            if [ "$attempt" -lt "$max_attempts" ]; then
+              echo "Falhou, aguardando ${sleep_seconds}s para tentar novamente..."
+              sleep "$sleep_seconds"
+            fi
+
+            attempt=$((attempt + 1))
+          done
+
+          if [ "${response:-}" != "\"ok\"" ] && [ "${response:-}" != "ok" ]; then
+            echo "Resposta inesperada do keepalive: ${response:-<vazia>}"
+            exit 1
+          fi
+
+          echo "Keep alive executado com sucesso. Resposta: $response"

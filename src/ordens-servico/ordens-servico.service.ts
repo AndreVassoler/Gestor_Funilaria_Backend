@@ -180,6 +180,7 @@ export class OrdensServicoService {
     if (dto.modelo !== undefined) row.modelo = dto.modelo;
     if (dto.ano !== undefined) row.ano = dto.ano;
     if (dto.placa !== undefined) row.placa = dto.placa;
+    if (dto.pecasReparo !== undefined) row.pecasReparo = dto.pecasReparo;
     if (dto.descricao !== undefined) row.descricao = dto.descricao;
     if (dto.valor !== undefined) row.valor = dto.valor;
     if (dto.status !== undefined) {

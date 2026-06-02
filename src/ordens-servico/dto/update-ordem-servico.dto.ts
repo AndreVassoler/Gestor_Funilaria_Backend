@@ -50,6 +50,10 @@ export class UpdateOrdemServicoDto {
   @IsOptional()
   @IsString()
   @MinLength(1)
+  pecasReparo?: string;
+
+  @IsOptional()
+  @IsString()
   descricao?: string;
 
   @IsOptional()

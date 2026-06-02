@@ -30,6 +30,9 @@ export class OrdemServico {
   @Column({ type: 'varchar', length: 20 })
   placa: string;
 
+  @Column({ type: 'text', nullable: true })
+  pecasReparo: string | null;
+
   @Column({ type: 'text' })
   descricao: string;
 

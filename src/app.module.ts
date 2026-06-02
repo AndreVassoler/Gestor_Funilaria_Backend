@@ -20,8 +20,13 @@ if (!databaseUrl) {
   );
 }
 
-/** Supabase e a maioria dos hosts em nuvem exigem TLS; desligue só em Postgres local sem SSL. */
-const useSsl = process.env.DATABASE_SSL !== 'false';
+/**
+ * Supabase e a maioria dos hosts em nuvem exigem TLS.
+ * Postgres local ou rede privada Railway (`.railway.internal`) não usam SSL.
+ */
+const isRailwayPrivateNetwork = databaseUrl.includes('.railway.internal');
+const useSsl =
+  process.env.DATABASE_SSL !== 'false' && !isRailwayPrivateNetwork;
 
 @Module({
   imports: [
