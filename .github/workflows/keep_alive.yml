@@ -16,36 +16,57 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_KEEPALIVE_RPC: ${{ secrets.SUPABASE_KEEPALIVE_RPC }}
         run: |
           set -euo pipefail
 
-          URL="${SUPABASE_URL}/rest/v1/rpc/keepalive"
           HEADERS=(
             -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}"
             -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}"
             -H "Content-Type: application/json"
           )
 
-          max_attempts=5
+          # Permite configurar o nome da RPC por secret, com fallback para nomes comuns.
+          rpc_candidates=()
+          if [ -n "${SUPABASE_KEEPALIVE_RPC:-}" ]; then
+            rpc_candidates+=("${SUPABASE_KEEPALIVE_RPC}")
+          fi
+          rpc_candidates+=("keepalive" "rpc_keepalive")
+
+          max_attempts=3
           sleep_seconds=12
-          attempt=1
+          success=0
+          response=""
 
-          while [ "$attempt" -le "$max_attempts" ]; do
-            echo "Tentativa ${attempt}/${max_attempts}..."
+          for rpc_name in "${rpc_candidates[@]}"; do
+            URL="${SUPABASE_URL}/rest/v1/rpc/${rpc_name}"
+            echo "Testando RPC: ${rpc_name}"
 
-            response="$(curl -sS --fail-with-body -X POST "$URL" "${HEADERS[@]}" -d '{}')" && break
+            attempt=1
+            while [ "$attempt" -le "$max_attempts" ]; do
+              echo "Tentativa ${attempt}/${max_attempts} em ${rpc_name}..."
 
-            if [ "$attempt" -lt "$max_attempts" ]; then
-              echo "Falhou, aguardando ${sleep_seconds}s para tentar novamente..."
-              sleep "$sleep_seconds"
+              response="$(curl -sS --fail-with-body -X POST "$URL" "${HEADERS[@]}" -d '{}')" && break
+
+              if [ "$attempt" -lt "$max_attempts" ]; then
+                echo "Falhou, aguardando ${sleep_seconds}s para tentar novamente..."
+                sleep "$sleep_seconds"
+              fi
+
+              attempt=$((attempt + 1))
+            done
+
+            if [ "${response:-}" = "\"ok\"" ] || [ "${response:-}" = "ok" ]; then
+              success=1
+              echo "Keep alive executado com sucesso via '${rpc_name}'. Resposta: ${response}"
+              break
             fi
 
-            attempt=$((attempt + 1))
+            echo "RPC '${rpc_name}' não retornou sucesso. Resposta: ${response:-<vazia>}"
+            response=""
           done
 
-          if [ "${response:-}" != "\"ok\"" ] && [ "${response:-}" != "ok" ]; then
-            echo "Resposta inesperada do keepalive: ${response:-<vazia>}"
+          if [ "$success" -ne 1 ]; then
+            echo "Nenhuma RPC de keepalive respondeu com sucesso."
             exit 1
           fi
-
-          echo "Keep alive executado com sucesso. Resposta: $response"
