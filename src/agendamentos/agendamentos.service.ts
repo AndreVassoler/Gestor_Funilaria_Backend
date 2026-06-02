@@ -5,7 +5,6 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { GoogleCalendarService } from '../google-calendar/google-calendar.service';
 import { Agendamento, AgendamentoStatus } from './agendamento.entity';
 import { CreateAgendamentoDto } from './dto/create-agendamento.dto';
 import { UpdateAgendamentoDto } from './dto/update-agendamento.dto';
@@ -17,7 +16,6 @@ export class AgendamentosService {
   constructor(
     @InjectRepository(Agendamento)
     private readonly repo: Repository<Agendamento>,
-    private readonly googleCalendar: GoogleCalendarService,
   ) {}
 
   private normalizarDia(raw: string): string {
@@ -55,18 +53,8 @@ export class AgendamentosService {
       observacoes: (dto.observacoes ?? '').trim(),
       status: dto.status ?? AgendamentoStatus.AGENDADO,
       ordemId: null,
-      googleEventId: null,
     });
-    let saved = await this.repo.save(row);
-    const withEvent = await this.googleCalendar.syncOnCreate(saved);
-    if (withEvent.googleEventId) {
-      await this.repo.update(
-        { id: saved.id },
-        { googleEventId: withEvent.googleEventId },
-      );
-      saved = await this.findOne(saved.id);
-    }
-    return saved;
+    return this.repo.save(row);
   }
 
   async findByRange(deRaw: string, ateRaw: string): Promise<Agendamento[]> {
@@ -110,14 +98,11 @@ export class AgendamentosService {
     }
 
     const saved = await this.repo.save(row);
-    await this.googleCalendar.syncOnUpdate(saved);
     return saved;
   }
 
   async remove(id: number): Promise<void> {
     const row = await this.findOne(id);
-    const gid = row.googleEventId;
     await this.repo.remove(row);
-    await this.googleCalendar.syncOnDelete(gid);
   }
 }

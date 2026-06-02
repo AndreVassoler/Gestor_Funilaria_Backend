@@ -1,6 +1,6 @@
 # Gestor_Funilaria_Backend
 
-API REST para gestão de **ordens de serviço** em funilaria: CRUD de OS, fotos, agendamentos, relatórios, exportação PDF/Excel, autenticação JWT e integração com Google Calendar.
+API REST para gestão de **ordens de serviço** em funilaria: CRUD de OS, fotos, agendamentos, relatórios, exportação PDF/Excel e autenticação JWT.
 
 O painel web fica no repositório separado **[Gestor_Funilaria_Frontend](https://github.com/AndreVassoler/Gestor_Funilaria_Frontend)**.
 
@@ -16,7 +16,7 @@ O painel web fica no repositório separado **[Gestor_Funilaria_Frontend](https:/
 
 - **NestJS 11**, TypeORM, PostgreSQL (`pg`)
 - Multer (upload de fotos), PDFKit / ExcelJS (relatórios e exportações)
-- JWT, Google Calendar (opcional)
+- JWT
 
 ## Pré-requisitos
 
@@ -40,7 +40,7 @@ A API sobe em **http://localhost:3000** (ou na porta `PORT`).
 
 ### Variáveis de ambiente
 
-Obrigatório: `DATABASE_URL`, `JWT_SECRET`. Veja `.env.example` para OAuth Google, credenciais do painel e URL do front em produção (`FRONTEND_APP_URL`).
+Obrigatório: `DATABASE_URL`, `JWT_SECRET`. Veja `.env.example` para credenciais do painel e URL do front em produção (`FRONTEND_APP_URL`).
 
 ## Deploy no Railway
 

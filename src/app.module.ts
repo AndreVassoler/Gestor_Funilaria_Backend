@@ -7,7 +7,6 @@ import { Agendamento } from './agendamentos/agendamento.entity';
 import { AgendamentosModule } from './agendamentos/agendamentos.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
-import { GoogleCalendarToken } from './google-calendar/google-calendar-token.entity';
 import { OrdemServicoFoto } from './ordens-servico/ordem-servico-foto.entity';
 import { OrdemServico } from './ordens-servico/ordem-servico.entity';
 import { OrdensServicoModule } from './ordens-servico/ordens-servico.module';
@@ -38,7 +37,6 @@ const useSsl =
         OrdemServico,
         OrdemServicoFoto,
         Agendamento,
-        GoogleCalendarToken,
       ],
       synchronize: true,
       retryAttempts: 3,

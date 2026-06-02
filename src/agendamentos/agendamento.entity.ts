@@ -47,8 +47,4 @@ export class Agendamento {
   /** Preenchido quando a OS é aberta a partir deste agendamento */
   @Column({ type: 'int', nullable: true })
   ordemId: number | null;
-
-  /** ID do evento no Google Agenda (API), quando sincronizado */
-  @Column({ type: 'varchar', length: 255, nullable: true })
-  googleEventId: string | null;
 }

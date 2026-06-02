@@ -1,5 +1,11 @@
 import type { Request } from 'express';
-import { withHttpSchemeIfMissing } from './google-calendar/http-url.util';
+
+function withHttpSchemeIfMissing(url: string): string {
+  const t = url.trim();
+  if (!t) return t;
+  if (/^https?:\/\//i.test(t)) return t;
+  return `http://${t}`;
+}
 
 /**
  * URL do painel (SPA) para redirects a partir da API.
