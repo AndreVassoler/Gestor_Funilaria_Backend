@@ -2,6 +2,7 @@ import './bootstrap-env';
 
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Agendamento } from './agendamentos/agendamento.entity';
 import { AgendamentosModule } from './agendamentos/agendamentos.module';
@@ -26,14 +27,29 @@ const isRailwayPrivateNetwork = databaseUrl.includes('.railway.internal');
 const useSsl =
   process.env.DATABASE_SSL !== 'false' && !isRailwayPrivateNetwork;
 
+/**
+ * Em produção o schema NÃO deve ser alterado automaticamente: `synchronize: true`
+ * pode dropar colunas e perder dados num deploy. Liga só fora de produção.
+ * Mudanças de schema em produção devem ir por migrations do TypeORM.
+ */
+const isProduction =
+  process.env.NODE_ENV === 'production' ||
+  Boolean(process.env.RAILWAY_ENVIRONMENT);
+
 @Module({
   imports: [
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60_000,
+        limit: 60,
+      },
+    ]),
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: databaseUrl,
       ssl: useSsl ? { rejectUnauthorized: false } : false,
       entities: [OrdemServico, Agendamento],
-      synchronize: true,
+      synchronize: !isProduction,
       retryAttempts: 3,
       retryDelay: 3000,
     }),
