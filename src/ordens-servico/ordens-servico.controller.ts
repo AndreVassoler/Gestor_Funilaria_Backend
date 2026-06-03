@@ -19,7 +19,11 @@ import {
   OrdensPdfService,
   type RelatorioFiscalEscopo,
 } from './ordens-pdf.service';
-import { OrdensServicoService } from './ordens-servico.service';
+import {
+  ORDENS_PAGE_SIZE_DEFAULT,
+  ORDENS_PAGE_SIZE_MAX,
+  OrdensServicoService,
+} from './ordens-servico.service';
 
 @Controller('ordens-servico')
 export class OrdensServicoController {
@@ -38,7 +42,44 @@ export class OrdensServicoController {
     @Query('cliente') cliente?: string,
     @Query('placa') placa?: string,
     @Query('status') status?: string,
+    @Query('all') all?: string,
+    @Query('page') pageQ?: string,
+    @Query('pageSize') pageSizeQ?: string,
+    @Query('ordenacao') ordenacao?: string,
   ) {
+    const filters = this.parseListFilters(cliente, placa, status);
+    const fetchAll = all === '1' || all === 'true';
+    if (fetchAll) {
+      return this.service.findAll(filters);
+    }
+
+    const page = Math.max(1, parseInt(pageQ ?? '1', 10) || 1);
+    let pageSize = parseInt(
+      pageSizeQ ?? String(ORDENS_PAGE_SIZE_DEFAULT),
+      10,
+    );
+    if (Number.isNaN(pageSize) || pageSize < 1) {
+      pageSize = ORDENS_PAGE_SIZE_DEFAULT;
+    }
+    pageSize = Math.min(pageSize, ORDENS_PAGE_SIZE_MAX);
+
+    const painelTodos =
+      !filters.status &&
+      (ordenacao === 'painel' || ordenacao === undefined || ordenacao === '');
+
+    return this.service.findAllPaginated(
+      filters,
+      page,
+      pageSize,
+      painelTodos,
+    );
+  }
+
+  private parseListFilters(
+    cliente?: string,
+    placa?: string,
+    status?: string,
+  ): { cliente?: string; placa?: string; status?: OrdemServicoStatus } {
     let st: OrdemServicoStatus | undefined;
     if (status !== undefined && status !== '') {
       if (
@@ -50,7 +91,7 @@ export class OrdensServicoController {
       }
       st = status as OrdemServicoStatus;
     }
-    return this.service.findAll({ cliente, placa, status: st });
+    return { cliente, placa, status: st };
   }
 
   @Get('resumo')
@@ -59,18 +100,7 @@ export class OrdensServicoController {
     @Query('placa') placa?: string,
     @Query('status') status?: string,
   ) {
-    let st: OrdemServicoStatus | undefined;
-    if (status !== undefined && status !== '') {
-      if (
-        !Object.values(OrdemServicoStatus).includes(status as OrdemServicoStatus)
-      ) {
-        throw new BadRequestException(
-          'Parâmetro status deve ser: aberto, fazendo ou pronto',
-        );
-      }
-      st = status as OrdemServicoStatus;
-    }
-    return this.service.getResumo({ cliente, placa, status: st });
+    return this.service.getResumo(this.parseListFilters(cliente, placa, status));
   }
 
   @Get('export/pdf')

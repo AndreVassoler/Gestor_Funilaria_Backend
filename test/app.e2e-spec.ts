@@ -49,11 +49,16 @@ describe('OrdensServico (e2e)', () => {
     expect(token).toBeDefined();
 
     return request(app.getHttpServer())
-      .get('/ordens-servico')
+      .get('/ordens-servico?page=1&pageSize=10')
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
       .expect((res) => {
-        expect(Array.isArray(res.body)).toBe(true);
+        expect(res.body).toMatchObject({
+          items: expect.any(Array),
+          total: expect.any(Number),
+          page: 1,
+          pageSize: 10,
+        });
       });
   });
 });

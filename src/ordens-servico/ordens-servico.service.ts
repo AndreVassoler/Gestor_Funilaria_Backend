@@ -16,6 +16,16 @@ export type ListOrdensFilters = {
   status?: OrdemServicoStatus;
 };
 
+export const ORDENS_PAGE_SIZE_DEFAULT = 24;
+export const ORDENS_PAGE_SIZE_MAX = 100;
+
+export type OrdensPaginatedResult = {
+  items: OrdemServico[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
 @Injectable()
 export class OrdensServicoService {
   constructor(
@@ -75,52 +85,54 @@ export class OrdensServicoService {
     return this.repo.save(entity);
   }
 
+  private createListQueryBuilder(
+    filters?: ListOrdensFilters,
+    painelTodos = false,
+  ): SelectQueryBuilder<OrdemServico> {
+    const qb = this.repo.createQueryBuilder('o');
+    this.applyListFilters(qb, filters);
+
+    if (painelTodos) {
+      qb.orderBy(
+        `CASE o.status WHEN :stFazendo THEN 0 WHEN :stAberto THEN 1 WHEN :stPronto THEN 2 ELSE 3 END`,
+        'ASC',
+      )
+        .setParameters({
+          stFazendo: OrdemServicoStatus.FAZENDO,
+          stAberto: OrdemServicoStatus.ABERTO,
+          stPronto: OrdemServicoStatus.PRONTO,
+        })
+        .addOrderBy('o.previsaoEntrega IS NULL', 'ASC')
+        .addOrderBy('o.previsaoEntrega', 'ASC')
+        .addOrderBy('o.id', 'DESC');
+    } else {
+      qb.orderBy('o.previsaoEntrega IS NULL', 'ASC')
+        .addOrderBy('o.previsaoEntrega', 'ASC')
+        .addOrderBy('o.id', 'DESC');
+    }
+
+    return qb;
+  }
+
   findAll(filters?: ListOrdensFilters): Promise<OrdemServico[]> {
-    const qb = this.repo.createQueryBuilder('o');
-    this.applyListFilters(qb, filters);
-
-    qb.orderBy('o.previsaoEntrega IS NULL', 'ASC')
-      .addOrderBy('o.previsaoEntrega', 'ASC')
-      .addOrderBy('o.id', 'DESC');
-
-    return qb.getMany();
+    const painelTodos = !filters?.status;
+    return this.createListQueryBuilder(filters, painelTodos).getMany();
   }
 
-  private async countComFiltro(
+  async findAllPaginated(
     filters: ListOrdensFilters | undefined,
-    status: OrdemServicoStatus,
-  ): Promise<number> {
-    const qb = this.repo.createQueryBuilder('o');
-    this.applyListFilters(qb, filters);
-    qb.andWhere('o.status = :st', { st: status });
-    return qb.getCount();
-  }
+    page: number,
+    pageSize: number,
+    painelTodos: boolean,
+  ): Promise<OrdensPaginatedResult> {
+    const qb = this.createListQueryBuilder(filters, painelTodos);
+    const total = await qb.getCount();
+    const items = await qb
+      .skip((page - 1) * pageSize)
+      .take(pageSize)
+      .getMany();
 
-  private async sumValorComFiltro(
-    filters: ListOrdensFilters | undefined,
-    status: OrdemServicoStatus,
-  ): Promise<number> {
-    const qb = this.repo.createQueryBuilder('o');
-    this.applyListFilters(qb, filters);
-    qb
-      .select('COALESCE(SUM(o.valor), 0)', 'sum')
-      .andWhere('o.status = :st', { st: status });
-    const row = await qb.getRawOne<{ sum: string | number }>();
-    return Number(row?.sum ?? 0);
-  }
-
-  private async sumValorCarteiraComFiltro(
-    filters: ListOrdensFilters | undefined,
-  ): Promise<number> {
-    const qb = this.repo.createQueryBuilder('o');
-    this.applyListFilters(qb, filters);
-    qb
-      .select('COALESCE(SUM(o.valor), 0)', 'sum')
-      .andWhere('o.status IN (:...sts)', {
-        sts: [OrdemServicoStatus.ABERTO, OrdemServicoStatus.FAZENDO],
-      });
-    const row = await qb.getRawOne<{ sum: string | number }>();
-    return Number(row?.sum ?? 0);
+    return { items, total, page, pageSize };
   }
 
   async getResumo(filters?: ListOrdensFilters): Promise<{
@@ -132,49 +144,65 @@ export class OrdensServicoService {
     valorArrecadadoProntos: number;
     valorEmAbertoEAndamento: number;
   }> {
-    const abertas = await this.countComFiltro(
-      filters,
-      OrdemServicoStatus.ABERTO,
-    );
-    const emAndamento = await this.countComFiltro(
-      filters,
-      OrdemServicoStatus.FAZENDO,
-    );
-    const prontas = await this.countComFiltro(
-      filters,
-      OrdemServicoStatus.PRONTO,
-    );
-
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
 
-    const qbAtr = this.repo.createQueryBuilder('o');
-    this.applyListFilters(qbAtr, filters);
-    const atrasadas = await qbAtr
-      .andWhere('o.previsaoEntrega IS NOT NULL')
-      .andWhere('o.previsaoEntrega < :hoje', { hoje: hoje.toISOString() })
-      .andWhere('o.status != :pronto', { pronto: OrdemServicoStatus.PRONTO })
-      .getCount();
+    const qb = this.repo.createQueryBuilder('o');
+    this.applyListFilters(qb, filters);
+    qb.select(
+      `COUNT(*) FILTER (WHERE o.status = :abertoSt)`,
+      'abertas',
+    )
+      .addSelect(
+        `COUNT(*) FILTER (WHERE o.status = :fazendoSt)`,
+        'em_andamento',
+      )
+      .addSelect(
+        `COUNT(*) FILTER (WHERE o.status = :prontoSt)`,
+        'prontas',
+      )
+      .addSelect(
+        `COUNT(*) FILTER (WHERE o.previsaoEntrega IS NOT NULL AND o.previsaoEntrega < :hoje AND o.status != :prontoSt)`,
+        'atrasadas',
+      )
+      .addSelect('COUNT(*)', 'total_ordens')
+      .addSelect(
+        `COALESCE(SUM(o.valor) FILTER (WHERE o.status = :prontoSt), 0)`,
+        'valor_arrecadado_prontos',
+      )
+      .addSelect(
+        `COALESCE(SUM(o.valor) FILTER (WHERE o.status IN (:...carteiraSts)), 0)`,
+        'valor_em_aberto_e_andamento',
+      )
+      .setParameters({
+        abertoSt: OrdemServicoStatus.ABERTO,
+        fazendoSt: OrdemServicoStatus.FAZENDO,
+        prontoSt: OrdemServicoStatus.PRONTO,
+        hoje: hoje.toISOString(),
+        carteiraSts: [
+          OrdemServicoStatus.ABERTO,
+          OrdemServicoStatus.FAZENDO,
+        ],
+      });
 
-    const qbTotal = this.repo.createQueryBuilder('o');
-    this.applyListFilters(qbTotal, filters);
-    const totalOrdens = await qbTotal.getCount();
-
-    const valorArrecadadoProntos = await this.sumValorComFiltro(
-      filters,
-      OrdemServicoStatus.PRONTO,
-    );
-    const valorEmAbertoEAndamento =
-      await this.sumValorCarteiraComFiltro(filters);
+    const row = await qb.getRawOne<{
+      abertas: string | number;
+      em_andamento: string | number;
+      prontas: string | number;
+      atrasadas: string | number;
+      total_ordens: string | number;
+      valor_arrecadado_prontos: string | number;
+      valor_em_aberto_e_andamento: string | number;
+    }>();
 
     return {
-      abertas,
-      emAndamento,
-      prontas,
-      atrasadas,
-      totalOrdens,
-      valorArrecadadoProntos,
-      valorEmAbertoEAndamento,
+      abertas: Number(row?.abertas ?? 0),
+      emAndamento: Number(row?.em_andamento ?? 0),
+      prontas: Number(row?.prontas ?? 0),
+      atrasadas: Number(row?.atrasadas ?? 0),
+      totalOrdens: Number(row?.total_ordens ?? 0),
+      valorArrecadadoProntos: Number(row?.valor_arrecadado_prontos ?? 0),
+      valorEmAbertoEAndamento: Number(row?.valor_em_aberto_e_andamento ?? 0),
     };
   }
 

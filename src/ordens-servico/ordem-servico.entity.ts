@@ -1,4 +1,4 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
 export enum OrdemServicoStatus {
   ABERTO = 'aberto',
@@ -7,6 +7,8 @@ export enum OrdemServicoStatus {
 }
 
 @Entity('ordens_servico')
+@Index(['status'])
+@Index(['previsaoEntrega'])
 export class OrdemServico {
   @PrimaryGeneratedColumn()
   id: number;
