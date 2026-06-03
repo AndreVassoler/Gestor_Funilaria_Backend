@@ -8,8 +8,14 @@ export class AgendaEmailScheduler {
 
   constructor(private readonly agendaEmail: AgendaEmailService) {}
 
-  /** Resumo diário às 07:00 (horário de Brasília). */
-  @Cron('0 7 * * *', { timeZone: 'America/Sao_Paulo' })
+  /**
+   * Resumo às 07:00 (Brasília). Desligado em produção no Railway — use GitHub Actions
+   * (keep_alive → job agenda-email). Ative só em dev: NOTIFY_RESUMO_INTERNAL_CRON=true
+   */
+  @Cron('0 7 * * *', {
+    timeZone: 'America/Sao_Paulo',
+    disabled: process.env.NOTIFY_RESUMO_INTERNAL_CRON !== 'true',
+  })
   async resumoDiario(): Promise<void> {
     try {
       await this.agendaEmail.sendResumoDiario();

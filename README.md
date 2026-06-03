@@ -61,6 +61,35 @@ O backend usa `DATABASE_URL` (TypeORM). O host `postgres.railway.internal` **só
 
 **Plano Free (us-west2):** fora do horário de pico (8h–20h America/Los_Angeles) ou faça upgrade se o deploy for bloqueado.
 
+### E-mail da agenda (Gmail / SMTP)
+
+Com as variáveis de e-mail no Railway (e no `.env` local), a API envia:
+
+| Evento | Quando |
+|--------|--------|
+| **Novo agendamento** | Na hora, ao salvar no painel |
+| **Resumo do dia** | 07:00 (Brasília), se houver agendamentos hoje (cancelados não entram) |
+
+Variáveis no serviço **Gestor_Funilaria** → **Variables** (veja `.env.example`):
+
+- `NOTIFY_EMAIL_TO`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`
+- `NOTIFY_EMAIL_FROM` (opcional)
+- `NOTIFY_CRON_SECRET` — mesma string no secret **GitHub** `NOTIFY_CRON_SECRET` (dispara o resumo das 07:00 com o app em sleep)
+- `FRONTEND_APP_URL` — link “Abrir agenda” nos e-mails
+
+**Gmail:** ative verificação em 2 etapas e use **Senha de app** em `SMTP_PASS` (não a senha normal da conta).
+
+**Testar aviso imediato:** cadastre um agendamento no painel e confira a caixa de entrada (e spam).
+
+**Testar resumo:** GitHub → **Actions** → **Keep Alive** → **Run workflow** (job `agenda-email`) ou, após deploy:
+
+```bash
+curl -X POST "https://SUA-API.up.railway.app/notifications/cron/agenda-resumo" \
+  -H "X-Notify-Cron-Secret: SEU_NOTIFY_CRON_SECRET" \
+  -H "Content-Type: application/json" \
+  -d "{}"
+```
+
 ## Keep alive (Supabase + Railway)
 
 O projeto pode **hibernar** no Supabase (inatividade) e no Railway (`sleepApplication: true` em `railway.json`). O workflow [`.github/workflows/keep_alive.yml`](.github/workflows/keep_alive.yml) envia pings automáticos:
@@ -69,6 +98,7 @@ O projeto pode **hibernar** no Supabase (inatividade) e no Railway (`sleepApplic
 |------|------------|-----------|
 | **Supabase** | 09:00 UTC, diário | `POST` na RPC `keepalive` |
 | **Railway (API)** | A cada 14 min | `GET /health` (rota pública) |
+| **Resumo agenda (e-mail)** | 10:00 UTC (07:00 Brasília) | `POST /notifications/cron/agenda-resumo` |
 
 ### Checklist no GitHub
 
@@ -79,12 +109,13 @@ Repositório **Gestor_Funilaria_Backend** → **Settings** → **Secrets and var
 | `SUPABASE_URL` | `https://xxxx.supabase.co` |
 | `SUPABASE_SERVICE_ROLE_KEY` | service role (Settings → API) |
 | `API_PUBLIC_URL` | `https://gestorfunilaria-production.up.railway.app` |
+| `NOTIFY_CRON_SECRET` | mesma string que `NOTIFY_CRON_SECRET` no Railway |
 
 Opcional: `SUPABASE_KEEPALIVE_RPC` se a função SQL tiver outro nome.
 
 ### Função SQL no Supabase (uma vez)
 
-No **SQL Editor**, execute a migration [`supabase/migrations/20260603120000_keepalive_rpc.sql`](supabase/migrations/20260603120000_keepalive_rpc.sql) ou rode o conteúdo dela manualmente.
+No **SQL Editor**, execute a migration [`supabase/migrations/20260603115744_keepalive_rpc.sql`](supabase/migrations/20260603115744_keepalive_rpc.sql) ou rode o conteúdo dela manualmente.
 
 Depois de `commit` + `push` do workflow: **Actions** → **Keep Alive (Supabase + Railway)** → **Run workflow** para testar. No log, confira `Keep alive Supabase OK` e `Keep alive Railway OK`.
 

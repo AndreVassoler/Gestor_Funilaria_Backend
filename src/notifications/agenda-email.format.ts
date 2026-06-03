@@ -81,6 +81,14 @@ function escapeHtml(s: string): string {
     .replace(/"/g, '&quot;');
 }
 
+/** Link do painel (/agenda) em produção. */
+export function painelAgendaUrl(): string | null {
+  const raw = process.env.FRONTEND_APP_URL?.trim();
+  if (!raw) return null;
+  const base = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  return `${base.replace(/\/$/, '')}/agenda`;
+}
+
 export function wrapEmailHtml(title: string, bodyHtml: string): string {
   return `
 <!DOCTYPE html>

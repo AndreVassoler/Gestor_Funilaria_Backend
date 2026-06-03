@@ -11,6 +11,7 @@ import {
   formatarAgendamentoTexto,
   formatarDiaBr,
   hojeYmdBr,
+  painelAgendaUrl,
   wrapEmailHtml,
 } from './agenda-email.format';
 
@@ -24,6 +25,21 @@ export class AgendaEmailService {
     private readonly agendamentoRepo: Repository<Agendamento>,
   ) {}
 
+  private rodapePainelTexto(): string {
+    const url = painelAgendaUrl();
+    return url
+      ? `Abra a agenda no painel: ${url}`
+      : 'Acesse o painel para ver a agenda completa.';
+  }
+
+  private rodapePainelHtml(): string {
+    const url = painelAgendaUrl();
+    if (!url) {
+      return '<p style="margin:16px 0 0">Acesse o painel para ver a agenda completa.</p>';
+    }
+    return `<p style="margin:16px 0 0"><a href="${url}" style="color:#1a6b45">Abrir agenda no painel</a></p>`;
+  }
+
   /** Aviso imediato ao cadastrar agendamento. Falhas são apenas logadas. */
   notifyNovoAgendamento(agendamento: Agendamento): void {
     if (!this.email.isConfigured()) return;
@@ -36,12 +52,12 @@ export class AgendaEmailService {
       '',
       formatarAgendamentoTexto(agendamento),
       '',
-      'Acesse o painel para ver a agenda completa.',
+      this.rodapePainelTexto(),
     ].join('\n');
 
     const html = wrapEmailHtml(
       'Novo agendamento',
-      `${formatarAgendamentoHtml(agendamento)}<p style="margin:16px 0 0">Acesse o painel para ver a agenda completa.</p>`,
+      `${formatarAgendamentoHtml(agendamento)}${this.rodapePainelHtml()}`,
     );
 
     void this.email.sendMail({ to, subject, text, html }).catch((err) => {
@@ -78,7 +94,7 @@ export class AgendaEmailService {
       '',
       ...lista.map((a) => formatarAgendamentoTexto(a)),
       '',
-      'Acesse o painel para ver a agenda completa.',
+      this.rodapePainelTexto(),
     ].join('\n');
 
     const html = wrapEmailHtml(
@@ -86,7 +102,7 @@ export class AgendaEmailService {
       [
         `<p style="margin:0 0 16px">${lista.length} agendamento(s) para <strong>${diaFmt}</strong>:</p>`,
         ...lista.map((a) => formatarAgendamentoHtml(a)),
-        '<p style="margin:16px 0 0">Acesse o painel para ver a agenda completa.</p>',
+        this.rodapePainelHtml(),
       ].join(''),
     );
 

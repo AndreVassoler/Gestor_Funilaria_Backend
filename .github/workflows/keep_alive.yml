@@ -6,6 +6,8 @@ on:
     - cron: "0 9 * * *"
     # Railway: a cada 14 min (sleepApplication no railway.json)
     - cron: "*/14 * * * *"
+    # Resumo e-mail da agenda: 07:00 America/Sao_Paulo (= 10:00 UTC)
+    - cron: "0 10 * * *"
   workflow_dispatch:
 
 jobs:
@@ -118,4 +120,61 @@ jobs:
           done
 
           echo "Falha ao acordar a API no Railway."
+          exit 1
+
+  agenda-email:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 10 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Disparar resumo diário da agenda (POST /notifications/cron/agenda-resumo)
+        env:
+          API_PUBLIC_URL: ${{ secrets.API_PUBLIC_URL }}
+          NOTIFY_CRON_SECRET: ${{ secrets.NOTIFY_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${API_PUBLIC_URL:-}" ]; then
+            echo "Secret API_PUBLIC_URL não configurado — pulando resumo da agenda."
+            exit 0
+          fi
+
+          if [ -z "${NOTIFY_CRON_SECRET:-}" ]; then
+            echo "Secret NOTIFY_CRON_SECRET não configurado — pulando resumo da agenda."
+            exit 0
+          fi
+
+          base="${API_PUBLIC_URL%/}"
+          url="${base}/notifications/cron/agenda-resumo"
+          max_attempts=3
+          sleep_seconds=20
+          attempt=1
+
+          while [ "$attempt" -le "$max_attempts" ]; do
+            echo "Tentativa ${attempt}/${max_attempts} em ${url}..."
+
+            http_code="$(curl -sS -o /tmp/resumo.json -w "%{http_code}" --max-time 120 \
+              -X POST "$url" \
+              -H "X-Notify-Cron-Secret: ${NOTIFY_CRON_SECRET}" \
+              -H "Content-Type: application/json" \
+              -d '{}')"
+            body="$(cat /tmp/resumo.json)"
+
+            if [ "$http_code" = "200" ] || [ "$http_code" = "201" ]; then
+              echo "Resumo da agenda disparado. HTTP ${http_code} — ${body}"
+              exit 0
+            fi
+
+            echo "Resposta inesperada: HTTP ${http_code} — ${body}"
+
+            if [ "$attempt" -lt "$max_attempts" ]; then
+              echo "Aguardando ${sleep_seconds}s..."
+              sleep "$sleep_seconds"
+            fi
+
+            attempt=$((attempt + 1))
+          done
+
+          echo "Falha ao disparar resumo diário da agenda."
           exit 1
