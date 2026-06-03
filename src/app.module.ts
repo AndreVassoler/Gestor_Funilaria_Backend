@@ -2,6 +2,7 @@ import './bootstrap-env';
 
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Agendamento } from './agendamentos/agendamento.entity';
 import { AgendamentosModule } from './agendamentos/agendamentos.module';
@@ -28,6 +29,7 @@ const useSsl =
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: databaseUrl,

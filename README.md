@@ -40,6 +40,8 @@ Obrigatório: `DATABASE_URL`, `JWT_SECRET`. Veja `.env.example` para credenciais
 
 ## Deploy no Railway
 
+O repositório inclui `railway.json` (builder **RAILPACK**). O build usa `npm ci --include=dev && npm run build` porque, com `NODE_ENV=production` nas variáveis do serviço, um `npm ci` comum **não instala** `@nestjs/cli` / TypeScript e o passo `nest build` quebra em poucos segundos.
+
 O backend usa `DATABASE_URL` (TypeORM). O host `postgres.railway.internal` **só resolve** quando o serviço **Postgres** está no **mesmo projeto** e as alterações do canvas foram aplicadas (botão **Apply changes** → **Deploy**).
 
 ### Checklist

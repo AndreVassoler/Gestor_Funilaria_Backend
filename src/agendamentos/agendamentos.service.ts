@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Agendamento, AgendamentoStatus } from './agendamento.entity';
+import { AgendaEmailService } from '../notifications/agenda-email.service';
 import { CreateAgendamentoDto } from './dto/create-agendamento.dto';
 import { UpdateAgendamentoDto } from './dto/update-agendamento.dto';
 
@@ -16,6 +17,7 @@ export class AgendamentosService {
   constructor(
     @InjectRepository(Agendamento)
     private readonly repo: Repository<Agendamento>,
+    private readonly agendaEmail: AgendaEmailService,
   ) {}
 
   private normalizarDia(raw: string): string {
@@ -54,7 +56,9 @@ export class AgendamentosService {
       status: dto.status ?? AgendamentoStatus.AGENDADO,
       ordemId: null,
     });
-    return this.repo.save(row);
+    const saved = await this.repo.save(row);
+    this.agendaEmail.notifyNovoAgendamento(saved);
+    return saved;
   }
 
   async findByRange(deRaw: string, ateRaw: string): Promise<Agendamento[]> {
