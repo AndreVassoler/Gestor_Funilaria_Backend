@@ -1,6 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
+import * as dns from 'dns';
 import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
+
+// Railway (ipv6Egress desligado): evita ENETUNREACH ao resolver smtp.gmail.com em IPv6.
+if (typeof dns.setDefaultResultOrder === 'function') {
+  dns.setDefaultResultOrder('ipv4first');
+}
 
 export type SendMailOptions = {
   to: string;
@@ -50,7 +56,9 @@ export class EmailService {
           user: process.env.SMTP_USER?.trim(),
           pass: process.env.SMTP_PASS,
         },
-      });
+        // family não está nos tipos do nodemailer, mas o Node usa IPv4 no socket SMTP.
+        family: 4,
+      } as nodemailer.TransportOptions);
     }
     return this.transporter;
   }
