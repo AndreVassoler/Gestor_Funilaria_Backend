@@ -1,6 +1,12 @@
+import * as dns from 'dns';
 import { config } from 'dotenv';
 import { existsSync } from 'fs';
 import { join } from 'path';
+
+// Railway sem egress IPv6: prioriza IPv4 para SMTP (smtp.gmail.com).
+if (typeof dns.setDefaultResultOrder === 'function') {
+  dns.setDefaultResultOrder('ipv4first');
+}
 
 /**
  * Carrega `.env` na raiz do projeto de forma estável: `dotenv.config()` sem path

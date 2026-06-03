@@ -1,12 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import * as dns from 'dns';
 import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
-
-// Railway (ipv6Egress desligado): evita ENETUNREACH ao resolver smtp.gmail.com em IPv6.
-if (typeof dns.setDefaultResultOrder === 'function') {
-  dns.setDefaultResultOrder('ipv4first');
-}
 
 export type SendMailOptions = {
   to: string;
