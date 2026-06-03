@@ -61,6 +61,33 @@ O backend usa `DATABASE_URL` (TypeORM). O host `postgres.railway.internal` **só
 
 **Plano Free (us-west2):** fora do horário de pico (8h–20h America/Los_Angeles) ou faça upgrade se o deploy for bloqueado.
 
+## Keep alive (Supabase + Railway)
+
+O projeto pode **hibernar** no Supabase (inatividade) e no Railway (`sleepApplication: true` em `railway.json`). O workflow [`.github/workflows/keep_alive.yml`](.github/workflows/keep_alive.yml) envia pings automáticos:
+
+| Alvo | Frequência | O que faz |
+|------|------------|-----------|
+| **Supabase** | 09:00 UTC, diário | `POST` na RPC `keepalive` |
+| **Railway (API)** | A cada 14 min | `GET /health` (rota pública) |
+
+### Checklist no GitHub
+
+Repositório **Gestor_Funilaria_Backend** → **Settings** → **Secrets and variables** → **Actions**:
+
+| Secret | Exemplo |
+|--------|---------|
+| `SUPABASE_URL` | `https://xxxx.supabase.co` |
+| `SUPABASE_SERVICE_ROLE_KEY` | service role (Settings → API) |
+| `API_PUBLIC_URL` | `https://gestorfunilaria-production.up.railway.app` |
+
+Opcional: `SUPABASE_KEEPALIVE_RPC` se a função SQL tiver outro nome.
+
+### Função SQL no Supabase (uma vez)
+
+No **SQL Editor**, execute a migration [`supabase/migrations/20260603120000_keepalive_rpc.sql`](supabase/migrations/20260603120000_keepalive_rpc.sql) ou rode o conteúdo dela manualmente.
+
+Depois de `commit` + `push` do workflow: **Actions** → **Keep Alive (Supabase + Railway)** → **Run workflow** para testar. No log, confira `Keep alive Supabase OK` e `Keep alive Railway OK`.
+
 ## CI (GitHub Actions)
 
 No push ou pull request para `main`, o workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) sobe PostgreSQL 16, define `DATABASE_SSL=false` e roda `build`, `test` e `test:e2e` na raiz do repositório.

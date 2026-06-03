@@ -32,6 +32,13 @@ describe('OrdensServico (e2e)', () => {
     await app.close();
   });
 
+  it('GET /health retorna ok sem autenticação', () => {
+    return request(app.getHttpServer())
+      .get('/health')
+      .expect(200)
+      .expect({ status: 'ok' });
+  });
+
   it('GET /ordens-servico retorna lista com JWT', async () => {
     const login = await request(app.getHttpServer())
       .post('/auth/login')

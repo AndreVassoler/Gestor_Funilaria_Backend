@@ -23,4 +23,11 @@ export class RootController {
     res.redirect(302, `${base}/login`);
     return;
   }
+
+  /** Usado por GitHub Actions / monitoramento para evitar sleep no Railway. */
+  @Public()
+  @Get('health')
+  health() {
+    return { status: 'ok' };
+  }
 }
