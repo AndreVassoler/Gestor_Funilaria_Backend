@@ -9,3 +9,6 @@ as $$
 $$;
 
 grant execute on function public.keepalive() to anon, authenticated, service_role;
+
+-- Atualiza o cache do PostgREST (evita 404 logo após criar a função).
+notify pgrst, 'reload schema';
