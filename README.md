@@ -84,7 +84,21 @@ Opcional: `SUPABASE_KEEPALIVE_RPC` se a função SQL tiver outro nome.
 
 ### Função SQL no Supabase (uma vez)
 
-No **SQL Editor**, execute a migration [`supabase/migrations/20260603115744_keepalive_rpc.sql`](supabase/migrations/20260603115744_keepalive_rpc.sql) ou rode o conteúdo dela manualmente.
+No **SQL Editor**, crie a RPC `keepalive` (se ainda não existir):
+
+```sql
+create or replace function public.keepalive()
+returns text
+language sql
+security definer
+set search_path = public
+as $$
+  select 'ok'::text;
+$$;
+
+grant execute on function public.keepalive() to anon, authenticated, service_role;
+notify pgrst, 'reload schema';
+```
 
 Depois de `commit` + `push` do workflow: **Actions** → **Keep Alive (Supabase + Railway)** → **Run workflow** para testar. No log, confira `Keep alive Supabase OK` e `Keep alive Railway OK`.
 

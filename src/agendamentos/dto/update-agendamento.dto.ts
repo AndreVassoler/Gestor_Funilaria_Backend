@@ -11,6 +11,7 @@ import {
   MinLength,
   ValidateIf,
 } from 'class-validator';
+import { TipoServico } from '../../tipo-servico';
 import { AgendamentoStatus } from '../agendamento.entity';
 
 export class UpdateAgendamentoDto {
@@ -62,6 +63,10 @@ export class UpdateAgendamentoDto {
   @IsOptional()
   @IsEnum(AgendamentoStatus)
   status?: AgendamentoStatus;
+
+  @IsOptional()
+  @IsEnum(TipoServico)
+  tipoServico?: TipoServico;
 
   @IsOptional()
   @ValidateIf((_, v) => v !== null && v !== undefined)

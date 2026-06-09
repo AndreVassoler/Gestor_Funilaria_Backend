@@ -14,6 +14,7 @@ import {
 import type { Response } from 'express';
 import { CreateOrdemServicoDto } from './dto/create-ordem-servico.dto';
 import { UpdateOrdemServicoDto } from './dto/update-ordem-servico.dto';
+import { TipoServico, TIPOS_SERVICO } from '../tipo-servico';
 import { OrdemServicoStatus } from './ordem-servico.entity';
 import {
   OrdensPdfService,
@@ -42,12 +43,13 @@ export class OrdensServicoController {
     @Query('cliente') cliente?: string,
     @Query('placa') placa?: string,
     @Query('status') status?: string,
+    @Query('tipoServico') tipoServico?: string,
     @Query('all') all?: string,
     @Query('page') pageQ?: string,
     @Query('pageSize') pageSizeQ?: string,
     @Query('ordenacao') ordenacao?: string,
   ) {
-    const filters = this.parseListFilters(cliente, placa, status);
+    const filters = this.parseListFilters(cliente, placa, status, tipoServico);
     const fetchAll = all === '1' || all === 'true';
     if (fetchAll) {
       return this.service.findAll(filters);
@@ -79,7 +81,13 @@ export class OrdensServicoController {
     cliente?: string,
     placa?: string,
     status?: string,
-  ): { cliente?: string; placa?: string; status?: OrdemServicoStatus } {
+    tipoServico?: string,
+  ): {
+    cliente?: string;
+    placa?: string;
+    status?: OrdemServicoStatus;
+    tipoServico?: TipoServico;
+  } {
     let st: OrdemServicoStatus | undefined;
     if (status !== undefined && status !== '') {
       if (
@@ -91,7 +99,16 @@ export class OrdensServicoController {
       }
       st = status as OrdemServicoStatus;
     }
-    return { cliente, placa, status: st };
+    let tipo: TipoServico | undefined;
+    if (tipoServico !== undefined && tipoServico !== '') {
+      if (!TIPOS_SERVICO.includes(tipoServico as TipoServico)) {
+        throw new BadRequestException(
+          'Parâmetro tipoServico deve ser: funilaria ou eletrica',
+        );
+      }
+      tipo = tipoServico as TipoServico;
+    }
+    return { cliente, placa, status: st, tipoServico: tipo };
   }
 
   @Get('resumo')
@@ -99,8 +116,11 @@ export class OrdensServicoController {
     @Query('cliente') cliente?: string,
     @Query('placa') placa?: string,
     @Query('status') status?: string,
+    @Query('tipoServico') tipoServico?: string,
   ) {
-    return this.service.getResumo(this.parseListFilters(cliente, placa, status));
+    return this.service.getResumo(
+      this.parseListFilters(cliente, placa, status, tipoServico),
+    );
   }
 
   @Get('export/pdf')
@@ -110,6 +130,7 @@ export class OrdensServicoController {
     @Query('cliente') cliente?: string,
     @Query('placa') placa?: string,
     @Query('status') status?: string,
+    @Query('tipoServico') tipoServico?: string,
     @Query('modo') modoRaw?: string,
     @Query('escopo') escopoRaw?: string,
     @Query('ano') anoQ?: string,
@@ -200,11 +221,21 @@ export class OrdensServicoController {
       }
       st = status as OrdemServicoStatus;
     }
+    let tipo: TipoServico | undefined;
+    if (!idList?.length && tipoServico?.trim()) {
+      if (!TIPOS_SERVICO.includes(tipoServico.trim() as TipoServico)) {
+        throw new BadRequestException(
+          'Parâmetro tipoServico deve ser: funilaria ou eletrica',
+        );
+      }
+      tipo = tipoServico.trim() as TipoServico;
+    }
     const buf = await this.pdfService.pdfLista({
       ids: idList,
       cliente: idList?.length ? undefined : cliente,
       placa: idList?.length ? undefined : placa,
       status: idList?.length ? undefined : st,
+      tipoServico: idList?.length ? undefined : tipo,
     });
     const name = idList?.length
       ? 'ordens-selecionadas.pdf'

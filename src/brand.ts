@@ -1,2 +1,5 @@
 /** Nome da oficina (PDFs e textos oficiais). */
-export const FUNILARIA_NOME = 'Funilaria Vassoler';
+export const OFICINA_NOME = 'AutoCar Vassoler';
+
+/** @deprecated Use OFICINA_NOME */
+export const FUNILARIA_NOME = OFICINA_NOME;

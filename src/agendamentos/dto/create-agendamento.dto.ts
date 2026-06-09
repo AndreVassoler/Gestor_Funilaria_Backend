@@ -11,6 +11,7 @@ import {
   Min,
   MinLength,
 } from 'class-validator';
+import { TipoServico } from '../../tipo-servico';
 import { AgendamentoStatus } from '../agendamento.entity';
 
 export class CreateAgendamentoDto {
@@ -60,4 +61,8 @@ export class CreateAgendamentoDto {
   @IsOptional()
   @IsEnum(AgendamentoStatus)
   status?: AgendamentoStatus;
+
+  @IsOptional()
+  @IsEnum(TipoServico)
+  tipoServico?: TipoServico;
 }

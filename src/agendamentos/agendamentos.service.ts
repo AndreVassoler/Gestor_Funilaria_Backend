@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { TipoServico } from '../tipo-servico';
 import { Agendamento, AgendamentoStatus } from './agendamento.entity';
 import { CreateAgendamentoDto } from './dto/create-agendamento.dto';
 import { UpdateAgendamentoDto } from './dto/update-agendamento.dto';
@@ -52,6 +53,7 @@ export class AgendamentosService {
       dia,
       observacoes: (dto.observacoes ?? '').trim(),
       status: dto.status ?? AgendamentoStatus.AGENDADO,
+      tipoServico: dto.tipoServico ?? TipoServico.FUNILARIA,
       ordemId: null,
     });
     return this.repo.save(row);
@@ -91,6 +93,7 @@ export class AgendamentosService {
     if (dto.ano !== undefined) row.ano = dto.ano;
     if (dto.observacoes !== undefined) row.observacoes = dto.observacoes.trim();
     if (dto.status !== undefined) row.status = dto.status;
+    if (dto.tipoServico !== undefined) row.tipoServico = dto.tipoServico;
     if (dto.ordemId !== undefined) row.ordemId = dto.ordemId;
 
     if (dto.dia !== undefined) {

@@ -5,15 +5,21 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
+import { TipoServico } from '../tipo-servico';
+import {
+  mensagemErroItensChecklist,
+  validarItensChecklistParaCotacao,
+} from './checklist-servico';
 import { CreateOrdemServicoDto } from './dto/create-ordem-servico.dto';
-import { validarPecasReparoParaCotacao } from './pecas-reparo-precos';
 import { UpdateOrdemServicoDto } from './dto/update-ordem-servico.dto';
 import { OrdemServico, OrdemServicoStatus } from './ordem-servico.entity';
+import { validarVeiculoOrdem } from './veiculo-ordem';
 
 export type ListOrdensFilters = {
   cliente?: string;
   placa?: string;
   status?: OrdemServicoStatus;
+  tipoServico?: TipoServico;
 };
 
 export const ORDENS_PAGE_SIZE_DEFAULT = 24;
@@ -53,29 +59,45 @@ export class OrdensServicoService {
     if (filters?.status) {
       qb.andWhere('o.status = :status', { status: filters.status });
     }
+    if (filters?.tipoServico) {
+      qb.andWhere('o.tipoServico = :tipoServico', {
+        tipoServico: filters.tipoServico,
+      });
+    }
   }
 
-  create(dto: CreateOrdemServicoDto): Promise<OrdemServico> {
-    let pecas: string[];
+  private validarItensOuBadRequest(
+    tipoServico: TipoServico,
+    itensChecklist: string | undefined,
+  ): string[] {
     try {
-      pecas = validarPecasReparoParaCotacao(dto.pecasReparo);
+      return validarItensChecklistParaCotacao(tipoServico, itensChecklist);
     } catch (e) {
       const code = e instanceof Error ? e.message : '';
-      if (code === 'PEÇAS_OBRIGATÓRIAS') {
-        throw new BadRequestException(
-          'Selecione ao menos uma peça para cotar o serviço.',
-        );
-      }
-      if (code === 'PEÇAS_INVALIDAS') {
-        throw new BadRequestException('Peça de reparo inválida na cotação.');
+      const msg = mensagemErroItensChecklist(code);
+      if (msg) {
+        throw new BadRequestException(msg);
       }
       throw e;
     }
-    const { dataAbertura, previsaoEntrega, ...rest } = dto;
+  }
+
+  create(dto: CreateOrdemServicoDto): Promise<OrdemServico> {
+    this.validarItensOuBadRequest(dto.tipoServico, dto.itensChecklist);
+    const veiculo = validarVeiculoOrdem({
+      ano: dto.ano,
+      placa: dto.placa,
+      implementoAgricola: dto.implementoAgricola,
+    });
+    const { dataAbertura, previsaoEntrega, ano, placa, implementoAgricola, ...rest } =
+      dto;
     const status = dto.status ?? OrdemServicoStatus.ABERTO;
     const entity = this.repo.create({
       ...rest,
-      pecasReparo: dto.pecasReparo.trim(),
+      ...veiculo,
+      marca: veiculo.marca ?? dto.marca,
+      modelo: veiculo.modelo ?? dto.modelo,
+      itensChecklist: dto.itensChecklist.trim(),
       status,
       dataAbertura: dataAbertura ? new Date(dataAbertura) : new Date(),
       previsaoEntrega: previsaoEntrega ? new Date(previsaoEntrega) : null,
@@ -221,9 +243,34 @@ export class OrdensServicoService {
     if (dto.contato !== undefined) row.contato = dto.contato;
     if (dto.marca !== undefined) row.marca = dto.marca;
     if (dto.modelo !== undefined) row.modelo = dto.modelo;
-    if (dto.ano !== undefined) row.ano = dto.ano;
-    if (dto.placa !== undefined) row.placa = dto.placa;
-    if (dto.pecasReparo !== undefined) row.pecasReparo = dto.pecasReparo;
+    if (
+      dto.ano !== undefined ||
+      dto.placa !== undefined ||
+      dto.implementoAgricola !== undefined
+    ) {
+      const veiculo = validarVeiculoOrdem({
+        ano: dto.ano !== undefined ? dto.ano : row.ano,
+        placa: dto.placa !== undefined ? dto.placa : row.placa,
+        implementoAgricola:
+          dto.implementoAgricola !== undefined
+            ? dto.implementoAgricola
+            : row.implementoAgricola,
+      });
+      row.ano = veiculo.ano;
+      row.placa = veiculo.placa;
+      row.implementoAgricola = veiculo.implementoAgricola;
+      if (veiculo.marca !== undefined) row.marca = veiculo.marca;
+      if (veiculo.modelo !== undefined) row.modelo = veiculo.modelo;
+    }
+    if (dto.tipoServico !== undefined && dto.tipoServico !== row.tipoServico) {
+      throw new BadRequestException(
+        'O tipo de serviço da ordem não pode ser alterado após a abertura.',
+      );
+    }
+    if (dto.itensChecklist !== undefined) {
+      this.validarItensOuBadRequest(row.tipoServico, dto.itensChecklist);
+      row.itensChecklist = dto.itensChecklist.trim();
+    }
     if (dto.descricao !== undefined) row.descricao = dto.descricao;
     if (dto.valor !== undefined) row.valor = dto.valor;
     if (dto.status !== undefined) {

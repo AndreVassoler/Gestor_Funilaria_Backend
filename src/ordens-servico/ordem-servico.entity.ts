@@ -1,4 +1,5 @@
 import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
+import { TipoServico } from '../tipo-servico';
 
 export enum OrdemServicoStatus {
   ABERTO = 'aberto',
@@ -9,6 +10,7 @@ export enum OrdemServicoStatus {
 @Entity('ordens_servico')
 @Index(['status'])
 @Index(['previsaoEntrega'])
+@Index(['tipoServico'])
 export class OrdemServico {
   @PrimaryGeneratedColumn()
   id: number;
@@ -25,14 +27,26 @@ export class OrdemServico {
   @Column({ type: 'varchar', length: 255 })
   modelo: string;
 
-  @Column({ type: 'int' })
-  ano: number;
+  @Column({ type: 'int', nullable: true })
+  ano: number | null;
 
-  @Column({ type: 'varchar', length: 20 })
+  @Column({ type: 'varchar', length: 20, default: '' })
   placa: string;
 
+  /** Trator/implemento sem placa — dispensa ano e placa no cadastro. */
+  @Column({ type: 'boolean', default: false })
+  implementoAgricola: boolean;
+
+  @Column({
+    type: 'varchar',
+    length: 20,
+    default: TipoServico.FUNILARIA,
+  })
+  tipoServico: TipoServico;
+
+  /** Itens do checklist (peças de lataria ou serviços elétricos), separados por vírgula. */
   @Column({ type: 'text', nullable: true })
-  pecasReparo: string | null;
+  itensChecklist: string | null;
 
   @Column({ type: 'text' })
   descricao: string;

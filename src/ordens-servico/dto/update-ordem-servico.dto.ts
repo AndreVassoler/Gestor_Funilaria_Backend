@@ -1,17 +1,17 @@
 import { Type } from 'class-transformer';
 import {
   Allow,
+  IsBoolean,
   IsDateString,
   IsEnum,
-  IsInt,
   IsNumber,
   IsOptional,
   IsString,
-  Max,
   Min,
   MinLength,
   ValidateIf,
 } from 'class-validator';
+import { TipoServico } from '../../tipo-servico';
 import { OrdemServicoStatus } from '../ordem-servico.entity';
 
 export class UpdateOrdemServicoDto {
@@ -36,21 +36,27 @@ export class UpdateOrdemServicoDto {
   modelo?: string;
 
   @IsOptional()
+  @Allow()
+  @ValidateIf((_, v) => v !== null && v !== undefined && v !== '')
   @Type(() => Number)
-  @IsInt()
-  @Min(1900)
-  @Max(new Date().getFullYear() + 1)
-  ano?: number;
+  ano?: number | null;
 
   @IsOptional()
   @IsString()
-  @MinLength(1)
   placa?: string;
 
   @IsOptional()
+  @IsBoolean()
+  implementoAgricola?: boolean;
+
+  @IsOptional()
+  @IsEnum(TipoServico)
+  tipoServico?: TipoServico;
+
+  @IsOptional()
   @IsString()
   @MinLength(1)
-  pecasReparo?: string;
+  itensChecklist?: string;
 
   @IsOptional()
   @IsString()

@@ -20,10 +20,10 @@ export function publicFrontendBase(req: Request): string {
 
   if (isLocal) {
     const raw =
-      process.env.FRONTEND_APP_URL_LOCAL ?? 'http://localhost:5173';
+      process.env.FRONTEND_APP_URL_LOCAL ?? 'http://localhost:3001';
     return withHttpSchemeIfMissing(raw).replace(/\/$/, '');
   }
 
-  const raw = process.env.FRONTEND_APP_URL ?? 'http://localhost:5173';
+  const raw = process.env.FRONTEND_APP_URL ?? 'http://localhost:3001';
   return withHttpSchemeIfMissing(raw).replace(/\/$/, '');
 }

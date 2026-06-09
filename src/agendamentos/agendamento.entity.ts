@@ -1,4 +1,5 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { TipoServico } from '../tipo-servico';
 
 export enum AgendamentoStatus {
   AGENDADO = 'agendado',
@@ -29,6 +30,13 @@ export class Agendamento {
 
   @Column({ type: 'int', nullable: true })
   ano: number | null;
+
+  @Column({
+    type: 'varchar',
+    length: 20,
+    default: TipoServico.FUNILARIA,
+  })
+  tipoServico: TipoServico;
 
   /** Dia do agendamento (AAAA-MM-DD, fuso local ao cadastrar). */
   @Column({ type: 'varchar', length: 10 })

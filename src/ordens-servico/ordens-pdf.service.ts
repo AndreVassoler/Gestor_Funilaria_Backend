@@ -5,7 +5,12 @@ import * as path from 'path';
 import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
 import { In, Repository, SelectQueryBuilder } from 'typeorm';
-import { FUNILARIA_NOME } from '../brand';
+import { OFICINA_NOME } from '../brand';
+import {
+  labelItensChecklist,
+  labelTipoServico,
+  TipoServico,
+} from '../tipo-servico';
 import { OrdemServico, OrdemServicoStatus } from './ordem-servico.entity';
 
 function fmtBrl(n: number) {
@@ -274,9 +279,19 @@ export class OrdensPdfService {
     doc.moveDown(0.35);
     lineKV('Nome do cliente:', o.cliente);
     lineKV('Telefone:', o.contato);
-    lineKV('Carro:', `${o.marca} ${o.modelo} (${o.ano})`);
-    lineKV('Placa:', o.placa);
-    lineKV('Local do reparo:', o.pecasReparo?.trim() || 'Não informado');
+    const veiculoLabel = o.implementoAgricola
+      ? 'Implemento agrícola'
+      : `${o.marca} ${o.modelo}${o.ano != null ? ` (${o.ano})` : ''}`;
+    lineKV('Veículo / equipamento:', veiculoLabel);
+    lineKV(
+      'Placa:',
+      o.implementoAgricola ? 'Não aplicável' : o.placa?.trim() || '—',
+    );
+    lineKV('Tipo de serviço:', labelTipoServico(o.tipoServico));
+    lineKV(
+      `${labelItensChecklist(o.tipoServico)}:`,
+      o.itensChecklist?.trim() || 'Não informado',
+    );
     lineKV('Valor:', fmtBrl(o.valor));
     lineKV('Previsão entrega:', fmtData(o.previsaoEntrega));
     doc.y = yCard + cardH + 10;
@@ -336,7 +351,7 @@ export class OrdensPdfService {
       doc.on('data', (c) => chunks.push(c));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       doc.on('error', reject);
-      this.drawPdfPageBanner(doc, `Ordem de serviço — ${FUNILARIA_NOME}`, [
+      this.drawPdfPageBanner(doc, `Ordem de serviço — ${OFICINA_NOME}`, [
         `Documento para assinatura · ${fmtDataHoraBr(new Date())}`,
       ]);
       this.drawOrdemPage(doc, o, { assinatura: true });
@@ -349,6 +364,7 @@ export class OrdensPdfService {
     cliente?: string;
     placa?: string;
     status?: OrdemServicoStatus;
+    tipoServico?: TipoServico;
   }): Promise<Buffer> {
     let rows: OrdemServico[];
 
@@ -375,6 +391,11 @@ export class OrdensPdfService {
       if (opts.status) {
         qb.andWhere('o.status = :status', { status: opts.status });
       }
+      if (opts.tipoServico) {
+        qb.andWhere('o.tipoServico = :tipoServico', {
+          tipoServico: opts.tipoServico,
+        });
+      }
       qb.orderBy('o.previsaoEntrega IS NULL', 'ASC')
         .addOrderBy('o.previsaoEntrega', 'ASC')
         .addOrderBy('o.id', 'DESC');
@@ -388,7 +409,7 @@ export class OrdensPdfService {
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       doc.on('error', reject);
 
-      this.drawPdfPageBanner(doc, `Relatório operacional — ${FUNILARIA_NOME}`, [
+      this.drawPdfPageBanner(doc, `Relatório operacional — ${OFICINA_NOME}`, [
         'Lista detalhada por ordem de serviço',
         `Gerado em ${fmtDataHoraBr(new Date())}`,
       ]);
@@ -411,7 +432,7 @@ export class OrdensPdfService {
               doc.addPage();
               this.drawPdfContinuationStrip(
                 doc,
-                `${FUNILARIA_NOME} · Relatório operacional (continuação)`,
+                `${OFICINA_NOME} · Relatório operacional (continuação)`,
               );
             }
             first = false;
@@ -575,7 +596,7 @@ export class OrdensPdfService {
 
       this.drawPdfPageBanner(
         doc,
-        `Relatório fiscal e gerencial — ${FUNILARIA_NOME}`,
+        `Relatório fiscal e gerencial — ${OFICINA_NOME}`,
         [
           this.tituloPeriodoRelatorio(opts),
           `Gerado em ${fmtDataHoraBr(new Date())}`,
@@ -681,7 +702,7 @@ export class OrdensPdfService {
           doc.addPage();
           this.drawPdfContinuationStrip(
             doc,
-            `${FUNILARIA_NOME} · Demonstrativo analítico (continuação)`,
+            `${OFICINA_NOME} · Demonstrativo analítico (continuação)`,
           );
           ty = drawHeaderRow(doc.y);
           rowIdx = 0;
@@ -713,7 +734,7 @@ export class OrdensPdfService {
         doc.addPage();
         this.drawPdfContinuationStrip(
           doc,
-          `${FUNILARIA_NOME} · Totais do demonstrativo`,
+          `${OFICINA_NOME} · Totais do demonstrativo`,
         );
         ty = doc.y;
       }
@@ -775,7 +796,7 @@ export class OrdensPdfService {
     });
 
     ws.mergeCells('A1:G1');
-    ws.getCell('A1').value = `Relatório fiscal e gerencial — ${FUNILARIA_NOME}`;
+    ws.getCell('A1').value = `Relatório fiscal e gerencial — ${OFICINA_NOME}`;
     ws.getCell('A1').font = {
       bold: true,
       size: 14,

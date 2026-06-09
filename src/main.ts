@@ -6,6 +6,10 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 
+const isProduction =
+  process.env.NODE_ENV === 'production' ||
+  Boolean(process.env.RAILWAY_ENVIRONMENT);
+
 /**
  * Origens liberadas no CORS: apenas o painel (produção + dev),
  * em vez de refletir qualquer site que chamar a API.
@@ -20,12 +24,29 @@ function buildAllowedOrigins(): string[] {
     // FRONTEND_APP_URL não estiver definida nas variáveis do Railway.
     'https://app.funilariavassoler.com.br',
     'http://localhost:5173',
+    'http://127.0.0.1:5173',
     'http://localhost:3001',
+    'http://127.0.0.1:3001',
     'http://localhost:3000',
+    'http://127.0.0.1:3000',
   ];
   return [...fromEnv, ...defaults]
     .filter((u): u is string => Boolean(u && u.trim()))
     .map((u) => u.trim().replace(/\/$/, ''));
+}
+
+/** Em dev, o Vite/serve podem subir em outra porta se 3001 estiver ocupada. */
+function isLocalDevOrigin(origin: string): boolean {
+  if (isProduction) return false;
+  try {
+    const url = new URL(origin);
+    return (
+      (url.protocol === 'http:' || url.protocol === 'https:') &&
+      (url.hostname === 'localhost' || url.hostname === '127.0.0.1')
+    );
+  } catch {
+    return false;
+  }
 }
 
 async function bootstrap() {
@@ -46,7 +67,12 @@ async function bootstrap() {
   app.enableCors({
     origin: (origin, callback) => {
       // Sem Origin = chamada server-to-server (curl, health check): liberar.
-      if (!origin || allowedOrigins.includes(origin.replace(/\/$/, ''))) {
+      const normalized = origin?.replace(/\/$/, '') ?? '';
+      if (
+        !origin ||
+        allowedOrigins.includes(normalized) ||
+        isLocalDevOrigin(normalized)
+      ) {
         callback(null, true);
         return;
       }
